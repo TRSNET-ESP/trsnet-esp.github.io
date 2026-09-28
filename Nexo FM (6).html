@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nexo FM — Solo Hits</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#101826; --navy-2:#182236;
+  --cream:#F7EFE1; --ink:#1C1712; --muted:#736A5E;
+  --gold:#e8813d; --gold-deep:#C9832A;
+  --ember:#D8483F;
+  --line:#00000014;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--cream:#171310;--ink:#F3EADB;--line:#ffffff16;--muted:#B9AC9A;}
+}
+*{box-sizing:border-box;}
+html{scroll-padding-top:64px; scroll-behavior:smooth;}
+html,body{height:100%;}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+a{color:inherit;text-decoration:none;}
+img{max-width:100%;display:block;}
+button{font-family:inherit;}
+h1,h2,h3,h4{font-family:'Space Grotesk',sans-serif;margin:0;}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px;}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+
+/* ---------- HEADER ---------- */
+header.top{background:var(--navy);position:sticky;top:0;z-index:30;border-bottom:1px solid #ffffff12;}
+.topbar{display:flex;align-items:center;justify-content:space-between;height:64px;}
+.wordmark{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px;color:#fff;letter-spacing:.2px;display:flex;align-items:baseline;gap:2px;}
+.wordmark span{color:var(--gold);}
+.desk-nav{display:none;gap:30px;align-items:center;}
+.desk-nav a{color:#fff;font-weight:600;font-size:13.5px;opacity:.82;}
+.desk-nav a:hover,.desk-nav a.active{opacity:1;color:var(--gold);}
+@media (min-width:820px){.desk-nav{display:flex;}}
+.top-right{display:flex;align-items:center;gap:14px;}
+.live-pill{display:flex;align-items:center;gap:7px;background:#ffffff14;color:#fff;font-size:11.5px;font-weight:700;padding:7px 12px;border-radius:20px;}
+.live-pill i{width:6px;height:6px;border-radius:50%;background:var(--ember);animation:pulse 1.6s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+.menu-btn{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;gap:5px;padding:6px;}
+.menu-btn span{width:22px;height:2.5px;background:#fff;border-radius:2px;transition:transform .2s,opacity .2s;}
+.menu-btn.open span:nth-child(1){transform:translateY(7.5px) rotate(45deg);}
+.menu-btn.open span:nth-child(2){opacity:0;}
+.menu-btn.open span:nth-child(3){transform:translateY(-7.5px) rotate(-45deg);}
+@media (min-width:820px){.menu-btn{display:none;}}
+
+.drawer{position:fixed;inset:0;z-index:50;visibility:hidden;}
+.drawer .backdrop{position:absolute;inset:0;background:#00000070;opacity:0;transition:opacity .25s;}
+.drawer .panel{position:absolute;top:0;right:0;bottom:0;width:min(280px,80%);background:var(--navy-2);color:#fff;padding:22px;padding-top:calc(22px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:20px;transform:translateX(100%);transition:transform .25s;}
+.drawer.open{visibility:visible;}
+.drawer.open .backdrop{opacity:1;}
+.drawer.open .panel{transform:translateX(0);}
+.drawer .panel .close{align-self:flex-end;background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1;}
+.drawer .panel a{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17px;padding:5px 0;}
+.drawer .panel a:hover{color:var(--gold);}
+.drawer .panel .sep{height:1px;background:#ffffff20;margin:2px 0;}
+.drawer .panel .social{display:flex;gap:10px;margin-top:auto;}
+.drawer .panel .social span{width:32px;height:32px;border-radius:50%;background:#ffffff14;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;}
+
+/* ---------- HERO ---------- */
+.hero{background:var(--navy);color:#fff;padding:34px 0 46px;position:relative;overflow:hidden;}
+.hero::before{content:"";position:absolute;inset:0;background:
+  repeating-linear-gradient(90deg,#ffffff08 0 1px,transparent 1px 34px);
+  mask-image:linear-gradient(180deg,transparent,#000 30%,#000 70%,transparent);}
+.hero-inner{position:relative;display:flex;flex-wrap:wrap;gap:28px;align-items:center;}
+.freq{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--gold);margin-bottom:10px;}
+.hero h1{font-size:clamp(28px,5vw,42px);line-height:1.05;max-width:520px;color:#fff;}
+.hero h1 em{font-style:normal;color:var(--gold);}
+.hero p.sub{color:#ffffffa8;font-size:14.5px;margin-top:12px;max-width:420px;line-height:1.55;}
+.dial{flex:none;width:min(230px,80vw);aspect-ratio:1;position:relative;}
+.dial svg{width:100%;height:100%;}
+.dial .center-btn{position:absolute;inset:0;margin:auto;width:70px;height:70px;border-radius:50%;background:var(--gold);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 30px -8px #e8813d80;}
+.dial .center-btn svg{width:22px;height:22px;fill:var(--navy);}
+.now{position:relative;margin-top:26px;display:flex;align-items:center;gap:12px;}
+.eq{display:flex;align-items:flex-end;gap:3px;height:16px;}
+.eq span{width:3px;background:var(--gold);border-radius:2px;height:4px;animation:eq 900ms ease-in-out infinite;animation-play-state:paused;}
+.eq span:nth-child(1){animation-delay:0ms;} .eq span:nth-child(2){animation-delay:150ms;}
+.eq span:nth-child(3){animation-delay:300ms;} .eq span:nth-child(4){animation-delay:450ms;}
+.eq.playing span{animation-play-state:running;}
+@keyframes eq{0%,100%{height:4px;}50%{height:16px;}}
+.now .txt .track{font-weight:700;font-size:14px;color:var(--gold);}
+.now .txt .artist{font-size:12.5px;color:#ffffff8c;}
+
+/* ---------- SECTIONS ---------- */
+section{padding:44px 0 6px;}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap;}
+.sec-head h2{font-size:20px;}
+.search-box{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:20px;padding:7px 12px;min-width:180px;}
+.search-box .ic{width:15px;height:15px;color:var(--muted);flex:none;}
+.search-box input{border:none;background:none;outline:none;font-size:13px;color:var(--ink);width:100%;font-family:inherit;}
+
+/* programs */
+.programs{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.program{border-radius:12px;overflow:hidden;background:transparent;border:1px solid var(--line);}
+.program.hidden{display:none;}
+.program .thumb{aspect-ratio:4/3;background:linear-gradient(135deg,var(--p1,#e8813d),var(--p2,#C9832A));position:relative;display:flex;align-items:center;justify-content:center;}
+.program .thumb .ic{width:34px;height:34px;color:#ffffffd0;stroke-width:1.3;}
+.program .thumb span{position:absolute;bottom:10px;left:10px;background:#00000055;color:#fff;font-size:10px;font-weight:700;padding:4px 8px;border-radius:6px;}
+.program .thumb .onair{position:absolute;top:10px;right:10px;background:var(--ember);color:#fff;font-size:9.5px;font-weight:800;letter-spacing:.4px;padding:4px 7px;border-radius:6px;display:none;align-items:center;gap:4px;}
+.program.on-air .thumb .onair{display:flex;}
+.program.on-air{border-color:var(--ember);}
+.program .body{padding:12px 14px 16px;}
+.program h4{font-size:14px;margin-bottom:4px;}
+.program p{margin:0;font-size:11.5px;color:var(--muted);}
+@media (max-width:900px){.programs{grid-template-columns:repeat(2,1fr);}}
+
+/* news */
+.news-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:26px;}
+.news-main .art{border-radius:12px;aspect-ratio:16/10;background:linear-gradient(135deg,#e8813d2e,#10182610);display:flex;align-items:center;justify-content:center;}
+.news-main .art .ic{width:30%;height:30%;color:var(--gold-deep);stroke-width:1;opacity:.55;}
+.news-main h3{font-size:21px;margin:14px 0 8px;line-height:1.25;}
+.news-main p{color:var(--muted);font-size:14px;line-height:1.5;margin:0;}
+.news-side article{padding:15px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start;}
+.news-side article:first-child{padding-top:0;}
+.news-side .thumb{width:56px;height:56px;border-radius:10px;flex:none;background:linear-gradient(135deg,#e8813d2e,#10182610);display:flex;align-items:center;justify-content:center;}
+.news-side .thumb .ic{width:22px;height:22px;color:var(--gold-deep);stroke-width:1.4;opacity:.7;}
+.news-side h4{font-size:14.5px;margin:0 0 6px;line-height:1.3;}
+.news-side p{margin:0;color:var(--muted);font-size:12.5px;}
+.news-side .meta{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;margin-top:8px;font-weight:600;}
+@media (max-width:700px){.news-grid{grid-template-columns:1fr;}}
+
+/* newsletter */
+.newsletter{background:var(--navy);border-radius:16px;padding:32px 26px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px;color:#fff;margin:46px auto 0;max-width:1180px;}
+.newsletter h3{font-size:19px;margin-bottom:6px;}
+.newsletter p{margin:0;color:#ffffffa0;font-size:13px;max-width:340px;}
+.newsletter form{display:flex;gap:8px;flex:1;min-width:250px;max-width:380px;}
+.newsletter input{flex:1;border:none;border-radius:8px;padding:12px 14px;font-size:13px;}
+.newsletter button{border:none;background:var(--gold);color:var(--navy);font-weight:700;padding:12px 18px;border-radius:8px;cursor:pointer;font-size:13px;}
+.newsletter .msg{font-size:12px;color:var(--gold);margin-top:6px;display:none;}
+.newsletter.sent .msg{display:block;}
+
+/* footer */
+footer.site{margin-top:56px;padding:0 0 24px;}
+.foot-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:28px;padding:34px 0;border-top:1px solid var(--line);}
+.foot-col h5{font-size:11px;letter-spacing:1px;color:var(--muted);margin:0 0 12px;font-weight:800;}
+.foot-col a{display:block;font-size:13px;font-weight:600;margin-bottom:9px;}
+.foot-col a:hover{color:var(--gold-deep);}
+.foot-bottom{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;color:var(--muted);font-size:12px;padding-top:16px;border-top:1px solid var(--line);}
+.foot-social{display:flex;gap:10px;}
+.foot-social span{width:30px;height:30px;border-radius:50%;background:#00000010;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;}
+@media (max-width:760px){.foot-grid{grid-template-columns:1fr 1fr;}}
+
+/* sticky player */
+.player{position:sticky;bottom:0;background:var(--navy);color:#fff;padding:11px 16px calc(11px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:12px;z-index:20;border-top:1px solid #ffffff14;}
+.player .cover{width:42px;height:42px;border-radius:8px;flex:none;background:linear-gradient(135deg,var(--gold),var(--ember));display:flex;align-items:center;justify-content:center;}
+.player .cover .eq span{background:var(--navy);}
+.player .info{min-width:0;flex:1;}
+.player .track{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--gold);}
+.player .artist{font-size:11.5px;color:#ffffff80;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vol-wrap{display:none;align-items:center;gap:6px;}
+.vol-wrap input[type="range"]{width:70px;accent-color:var(--gold);}
+.mute-btn{background:none;border:none;color:#ffffffc0;cursor:pointer;padding:4px;flex:none;}
+@media (min-width:760px){.vol-wrap{display:flex;}}
+.player .fab{width:36px;height:36px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;border:none;flex:none;cursor:pointer;}
+.player .fab svg{width:12px;height:12px;fill:var(--navy);}
+
+.toast{position:fixed;left:50%;bottom:86px;transform:translate(-50%,10px);background:var(--navy);color:#fff;font-size:12.5px;font-weight:600;padding:10px 16px;border-radius:20px;z-index:70;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;}
+.toast.show{opacity:1;transform:translate(-50%,0);}
+
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001ms !important;transition-duration:.001ms !important;}}
+</style>
+</head>
+<body>
+
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-vinyl" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="6" stroke-dasharray="1.5 3"/></symbol>
+  <symbol id="i-skyline" viewBox="0 0 24 24"><path d="M3 21V10l4-3 4 3v11M11 21V6l4-3 4 3v15M3 21h18"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2l2.6 6.6L21 9l-5 4.6L17.4 21 12 17.3 6.6 21 8 13.6 3 9l6.4-.4z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></symbol>
+  <symbol id="i-phones" viewBox="0 0 24 24"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="2" y="14" width="5" height="7" rx="1.5"/><rect x="17" y="14" width="5" height="7" rx="1.5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+  <symbol id="i-vol" viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10H3z"/><path d="M16 8a5 5 0 0 1 0 8"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10H3z"/><path d="M17 9l4 6M21 9l-4 6"/></symbol>
+</svg>
+
+<header class="top">
+  <div class="wrap topbar">
+    <a class="wordmark" href="#">NEXO<span>FM</span></a>
+    <nav class="desk-nav">
+      <a href="#" class="active">Música</a>
+      <a href="#programas">Programación</a>
+      <a href="#newsletter">Nexoparty</a>
+    </nav>
+    <div class="top-right">
+      <div class="live-pill"><i></i>DIRECTO</div>
+      <button class="menu-btn" id="menuBtn" aria-label="Abrir menú" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+
+<div class="drawer" id="drawer" aria-hidden="true">
+  <div class="backdrop" id="drawerBackdrop"></div>
+  <div class="panel">
+    <button class="close" id="drawerClose" aria-label="Cerrar menú">&times;</button>
+    <a href="#" data-close>Música</a>
+    <a href="#programas" data-close>Programación</a>
+    <a href="#newsletter" data-close>Nexoparty</a>
+    <div class="sep"></div>
+    <a href="#" id="drawerListen" data-close>Escuchar en directo</a>
+    <a href="#newsletter" data-close>Newsletter</a>
+    <div class="social"><span>IG</span><span>TT</span><span>X</span></div>
+  </div>
+</div>
+
+<section class="hero">
+  <div class="wrap hero-inner">
+    <div>
+      <div class="freq">104.7 FM · BURGOS &nbsp;|&nbsp; 105.8 FM · CANTABRIA</div>
+      <h1>LOS MEJORES <em>TEMAZOS</em></h1>
+      <p class="sub">Música non-stop, entrevistas exclusivas y el mejor directo, las 24 horas del día.</p>
+      <div class="now">
+        <div class="eq" id="heroEq"><span></span><span></span><span></span><span></span></div>
+        <div class="txt">
+          <div class="track" id="heroTrack">Nexo FM</div>
+          <div class="artist" id="heroArtist">Toca play para escuchar</div>
+        </div>
+      </div>
+    </div>
+    <div class="dial">
+      <svg viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r="92" fill="none" stroke="#ffffff18" stroke-width="1"/>
+        <circle cx="100" cy="100" r="78" fill="none" stroke="#ffffff18" stroke-width="1"/>
+        <g stroke="#e8813d" stroke-width="2" stroke-linecap="round">
+          <line x1="100" y1="8" x2="100" y2="18"/>
+          <line x1="100" y1="8" x2="100" y2="18" transform="rotate(45 100 100)"/>
+          <line x1="100" y1="8" x2="100" y2="18" transform="rotate(90 100 100)"/>
+          <line x1="100" y1="8" x2="100" y2="18" transform="rotate(135 100 100)"/>
+          <line x1="100" y1="8" x2="100" y2="18" transform="rotate(180 100 100)"/>
+          <line x1="100" y1="8" x2="100" y2="18" transform="rotate(225 100 100)"/>
+          <line x1="100" y1="8" x2="100" y2="18" transform="rotate(270 100 100)"/>
+          <line x1="100" y1="8" x2="100" y2="18" transform="rotate(315 100 100)"/>
+        </g>
+      </svg>
+      <button class="center-btn" id="dialPlay" aria-label="Reproducir en directo">
+        <svg id="dialIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <section id="programas">
+    <div class="sec-head">
+      <h2>Programación</h2>
+      <div class="search-box"><svg class="ic"><use href="#i-search"/></svg><input type="text" id="programSearch" placeholder="Buscar un programa…"></div>
+    </div>
+    <div class="programs" id="programsGrid"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Titulares</h2></div>
+    <div class="news-grid">
+      <article class="news-main">
+        <div class="art"><svg class="ic"><use href="#i-skyline"/></svg></div>
+        <h3>Mara Vidal estrena "Luces de Neón" y confirma gira por España</h3>
+        <p>La cantautora presenta su nuevo single, un tema que mezcla synth-pop con letras sobre reencuentros y ciudades de noche.</p>
+      </article>
+      <div class="news-side">
+        <article>
+          <div class="thumb"><svg class="ic"><use href="#i-vinyl"/></svg></div>
+          <div><h4>Río Costa publica "ORILLA", su primer álbum de estudio</h4><p>Diez canciones que recorren el pop-rock con guitarras crudas.</p><div class="meta">Redacción digital · 1 MIN</div></div>
+        </article>
+        <article>
+          <div class="thumb"><svg class="ic"><use href="#i-star"/></svg></div>
+          <div><h4>La gira "Verano Infinito" añade una fecha en Madrid</h4><p>El cartel se amplía con una noche extra de cierre de temporada.</p><div class="meta">Redacción digital · 2 MIN</div></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <div class="newsletter" id="newsletter">
+    <div>
+      <h3>No te pierdas ni un temazo</h3>
+      <p>Novedades, entrevistas y planes cada semana en tu correo.</p>
+      <div class="msg">¡Listo! Revisa tu correo para confirmar.</div>
+    </div>
+    <form id="newsletterForm">
+      <input type="email" placeholder="Tu correo" required>
+      <button type="submit">Apuntarme</button>
+    </form>
+  </div>
+
+  <footer class="site">
+    <div class="foot-grid">
+      <div class="foot-col">
+        <div class="wordmark" style="color:var(--ink);">NEXO<span>FM</span></div>
+        <p style="font-size:12px;color:var(--muted);max-width:220px;margin-top:12px;">Solo hits y lo mejor de la música, en directo las 24 horas.</p>
+      </div>
+      <div class="foot-col"><h5>SECCIONES</h5><a href="#">Música</a><a href="#programas">Programación</a><a href="#newsletter">Nexoparty</a></div>
+      <div class="foot-col"><h5>EMISORA</h5><a href="#" id="footListen">Escuchar en directo</a><a href="#">Nuestro equipo</a><a href="#">Contacto</a></div>
+      <div class="foot-col"><h5>LEGAL</h5><a href="#">Aviso legal</a><a href="#">Privacidad</a><a href="#">Cookies</a></div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Nexo FM. Todos los derechos reservados.</span>
+      <div class="foot-social"><span>IG</span><span>TT</span><span>X</span><span>YT</span></div>
+    </div>
+  </footer>
+</div>
+
+<div class="player">
+  <div class="cover"><div class="eq" id="playerEq"><span></span><span></span><span></span><span></span></div></div>
+  <div class="info">
+    <div class="track" id="playerTrack">Nexo FM</div>
+    <div class="artist" id="playerArtist">Toca play para escuchar</div>
+  </div>
+  <button class="mute-btn" id="muteBtn" aria-label="Silenciar"><svg class="ic" id="muteIcon"><use href="#i-vol"/></svg></button>
+  <div class="vol-wrap">
+    <input type="range" id="volSlider" min="0" max="100" value="80" aria-label="Volumen">
+  </div>
+  <button class="fab" id="fabBtn" aria-label="Reproducir">
+    <svg id="fabIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+  </button>
+</div>
+
+<audio id="radioAudio" preload="none"></audio>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  /* ---------- programs data + live "on air" ---------- */
+  var programs = [
+    {id:'p1', name:'Despierta Nexo', desc:'Las mañanas con más energía', label:'L-V · 8:00', icon:'i-sun', c1:'#e8813d', c2:'#C9832A', days:[1,2,3,4,5], start:8, end:14},
+    {id:'p2', name:'Mediodía Hits', desc:'Los temazos del momento', label:'L-V · 14:00', icon:'i-clock', c1:'#EBB65F', c2:'#D8483F', days:[1,2,3,4,5], start:14, end:19},
+    {id:'p3', name:'Tarde Nexo', desc:'Entrevistas y novedades', label:'L-V · 19:00', icon:'i-phones', c1:'#C9832A', c2:'#101826', days:[1,2,3,4,5], start:19, end:22},
+    {id:'p4', name:'Nexoparty', desc:'El fin de semana no para', label:'S-D · 22:00', icon:'i-moon', c1:'#D8483F', c2:'#8a2b25', days:[0,6], start:22, end:24}
+  ];
+  var grid = document.getElementById('programsGrid');
+  function renderPrograms(){
+    var now = new Date(), day = now.getDay(), hour = now.getHours();
+    grid.innerHTML = programs.map(function(p){
+      var onAir = p.days.indexOf(day) > -1 && hour >= p.start && hour < p.end;
+      return '<div class="program'+(onAir?' on-air':'')+'" data-name="'+p.name.toLowerCase()+'">' +
+        '<div class="thumb" style="--p1:'+p.c1+';--p2:'+p.c2+';"><svg class="ic"><use href="#'+p.icon+'"/></svg>' +
+          '<span>'+p.label+'</span><span class="onair">● EN DIRECTO</span></div>' +
+        '<div class="body"><h4>'+p.name+'</h4><p>'+p.desc+'</p></div></div>';
+    }).join('');
+  }
+  renderPrograms();
+  setInterval(renderPrograms, 60000);
+  document.getElementById('programSearch').addEventListener('input', function(e){
+    var q = e.target.value.trim().toLowerCase();
+    grid.querySelectorAll('.program').forEach(function(el){
+      el.classList.toggle('hidden', q && el.dataset.name.indexOf(q) === -1);
+    });
+  });
+
+  function toast(msg){
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove('show'); }, 2200);
+  }
+
+  /* ---------- newsletter ---------- */
+  var nlForm = document.getElementById('newsletterForm');
+  var nlBox = document.getElementById('newsletter');
+  nlForm.addEventListener('submit', function(e){ e.preventDefault(); nlBox.classList.add('sent'); nlForm.reset(); });
+
+  /* ---------- mobile drawer ---------- */
+  var menuBtn = document.getElementById('menuBtn');
+  var drawer = document.getElementById('drawer');
+  function openDrawer(){ drawer.classList.add('open'); menuBtn.classList.add('open'); menuBtn.setAttribute('aria-expanded','true'); drawer.setAttribute('aria-hidden','false'); }
+  function closeDrawer(){ drawer.classList.remove('open'); menuBtn.classList.remove('open'); menuBtn.setAttribute('aria-expanded','false'); drawer.setAttribute('aria-hidden','true'); }
+  menuBtn.addEventListener('click', function(){ drawer.classList.contains('open') ? closeDrawer() : openDrawer(); });
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  document.getElementById('drawerBackdrop').addEventListener('click', closeDrawer);
+  drawer.querySelectorAll('[data-close]').forEach(function(a){ a.addEventListener('click', closeDrawer); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeDrawer(); });
+
+  /* ---------- audio / live stream ---------- */
+  var STREAM_URL = "https://stream.zeno.fm/6wxdxt9fvpltv";
+  var META_URL = "https://api.zeno.fm/mounts/metadata/subscribe/6wxdxt9fvpltv";
+  var audio = document.getElementById('radioAudio');
+  var isPlaying = false, isLoading = false;
+
+  var ICON_PLAY = '<path d="M8 5v14l11-7z"/>';
+  var ICON_PAUSE = '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>';
+  var ICON_LOADING = '<path d="M12 2a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7z"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></path>';
+
+  function setIcons(state){
+    var svg = state === 'play' ? ICON_PLAY : state === 'pause' ? ICON_PAUSE : ICON_LOADING;
+    document.getElementById('fabIcon').innerHTML = svg;
+    document.getElementById('dialIcon').innerHTML = svg;
+  }
+  function setEq(playing){
+    ['heroEq','playerEq'].forEach(function(id){ document.getElementById(id).classList.toggle('playing', playing); });
+  }
+  function setNowPlaying(track, artist){
+    ['heroTrack','playerTrack'].forEach(function(id){ document.getElementById(id).textContent = track; });
+    ['heroArtist','playerArtist'].forEach(function(id){ document.getElementById(id).textContent = artist; });
+  }
+  async function playStream(){
+    if (isLoading) return;
+    if (isPlaying) { audio.pause(); return; }
+    try {
+      isLoading = true; setIcons('loading');
+      if (audio.src !== STREAM_URL) audio.src = STREAM_URL;
+      await audio.play();
+    } catch (err) {
+      isLoading = false; setIcons('pause');
+      toast('No se ha podido conectar con el directo.');
+    }
+  }
+  audio.addEventListener('playing', function(){ isLoading=false; isPlaying=true; setIcons('pause'); setEq(true); });
+  audio.addEventListener('waiting', function(){ isLoading=true; setIcons('loading'); });
+  audio.addEventListener('pause', function(){ isPlaying=false; setIcons('play'); setEq(false); });
+  audio.addEventListener('error', function(){ isLoading=false; isPlaying=false; setIcons('play'); setEq(false); });
+
+  document.getElementById('fabBtn').addEventListener('click', playStream);
+  document.getElementById('dialPlay').addEventListener('click', playStream);
+  document.getElementById('drawerListen').addEventListener('click', function(e){ e.preventDefault(); playStream(); });
+  document.getElementById('footListen').addEventListener('click', function(e){ e.preventDefault(); playStream(); });
+  setIcons('play');
+
+  audio.volume = 0.8;
+  var volSlider = document.getElementById('volSlider');
+  var muteBtn = document.getElementById('muteBtn');
+  var muteIcon = document.getElementById('muteIcon');
+  volSlider.addEventListener('input', function(e){ audio.volume = e.target.value/100; audio.muted = false; muteIcon.innerHTML = '<use href="#i-vol"/>'; });
+  muteBtn.addEventListener('click', function(){
+    audio.muted = !audio.muted;
+    muteIcon.innerHTML = audio.muted ? '<use href="#i-mute"/>' : '<use href="#i-vol"/>';
+  });
+
+  setNowPlaying('Nexo FM', 'Conectando con el directo…');
+  var metaResolved = false;
+  var metaFallback = setTimeout(function(){ if (!metaResolved) setNowPlaying('Nexo FM', 'En directo · Solo Hits'); }, 4000);
+  try {
+    var es = new EventSource(META_URL);
+    es.onmessage = function(event){
+      try {
+        var data = JSON.parse(event.data);
+        var title = data.streamTitle || '';
+        var parts = title.split(' - ');
+        metaResolved = true; clearTimeout(metaFallback);
+        if (parts.length >= 2) setNowPlaying(parts.slice(1).join(' - ').trim(), parts[0].trim());
+        else if (title) setNowPlaying(title, 'Nexo FM');
+      } catch(e){}
+    };
+    es.onerror = function(){};
+  } catch(e){ setNowPlaying('Nexo FM', 'En directo · Solo Hits'); }
+})();
+</script>
+
+</body>
+</html>

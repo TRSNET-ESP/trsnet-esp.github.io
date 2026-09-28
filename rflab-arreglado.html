@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RF·LAB · Simulador de propagación FM/RDS sobre relieve real</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Saira+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<style>
+/* =====================================================================
+   RF·LAB — estilos. Instrumentación oscura, paneles translúcidos,
+   fósforo ámbar para la pantalla del autorradio, verde para cobertura.
+   ===================================================================== */
+:root{
+  --bg:#06090d; --glass:rgba(9,14,21,.78); --glass2:rgba(16,24,34,.72);
+  --line:rgba(130,190,225,.16); --line2:rgba(130,190,225,.30);
+  --txt:#cfe1ec; --dim:#6d8595; --cy:#4fd8ff; --gr:#35ff9a; --am:#ffb340; --rd:#ff4d5e;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --ui:'Saira Semi Condensed','Segoe UI',system-ui,sans-serif;
+  --pw:396px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font:14px/1.35 var(--ui);overflow:hidden}
+#map{position:absolute;inset:0}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--cy);outline-offset:1px}
+.glass{background:var(--glass);backdrop-filter:blur(16px) saturate(1.2);-webkit-backdrop-filter:blur(16px) saturate(1.2);
+  border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.04)}
+.mono{font-family:var(--mono)}
+
+/* ---------- panel lateral ---------- */
+#panel{position:absolute;top:12px;left:12px;bottom:12px;width:var(--pw);display:flex;flex-direction:column;z-index:5;overflow:hidden}
+.brand{display:flex;align-items:center;gap:10px;padding:12px 14px 10px;border-bottom:1px solid var(--line)}
+.brand h1{margin:0;font:600 17px var(--ui);letter-spacing:.06em}
+.brand p{margin:0;color:var(--dim);font-size:12px}
+.brand .dem{margin-left:auto;font:11px var(--mono);color:var(--dim);border:1px solid var(--line);padding:3px 7px;border-radius:4px}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tab{flex:1;background:none;border:0;border-bottom:2px solid transparent;padding:9px 4px;color:var(--dim);font-weight:500}
+.tab.on{color:var(--cy);border-bottom-color:var(--cy);background:linear-gradient(#0000,rgba(79,216,255,.06))}
+.pages{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 14px 16px;scrollbar-width:thin;scrollbar-color:#2a3c4a transparent}
+.page{display:none}.page.on{display:block}
+h3{margin:16px 0 8px;font:600 12px var(--ui);color:var(--dim);letter-spacing:.04em}
+h3:first-child{margin-top:0}
+.row{display:flex;align-items:center;gap:8px}
+.grow{flex:1}
+.btn{background:rgba(79,216,255,.08);border:1px solid var(--line2);border-radius:6px;padding:6px 10px;transition:background .15s,border-color .15s}
+.btn:hover{background:rgba(79,216,255,.18);border-color:var(--cy)}
+.btn.on{background:rgba(53,255,154,.16);border-color:var(--gr);color:var(--gr)}
+.btn.warn{border-color:rgba(255,77,94,.5);background:rgba(255,77,94,.08)}
+.btn.sm{padding:3px 8px;font-size:12px}
+.ib{background:none;border:1px solid var(--line);border-radius:5px;width:26px;height:26px;color:var(--dim);line-height:1}
+.ib:hover{color:var(--cy);border-color:var(--cy)}
+input[type=text],input[type=number],select{background:#070d13;border:1px solid var(--line);border-radius:5px;padding:5px 7px;width:100%;font-family:var(--mono);font-size:12.5px}
+input[type=range]{width:100%;accent-color:var(--cy)}
+label.f{display:block;font-size:11px;color:var(--dim)}
+label.f input,label.f select{margin-top:2px}
+
+/* ---------- autorradio ---------- */
+.hu{background:linear-gradient(#0f161e,#0a0f15);border:1px solid var(--line2);border-radius:10px;padding:10px}
+.hu-top{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);margin-bottom:8px}
+.led{width:8px;height:8px;border-radius:50%;background:#2a2f36;box-shadow:inset 0 0 2px #000}
+.led.on{background:var(--gr);box-shadow:0 0 8px var(--gr)}
+.badge{margin-left:auto;font:10.5px var(--mono);padding:2px 6px;border:1px solid var(--line);border-radius:3px;color:var(--dim)}
+.lcd{background:#0b0904;border:1px solid #2b210c;border-radius:6px;padding:10px 12px 8px;color:var(--am);
+  text-shadow:0 0 8px rgba(255,179,64,.55);box-shadow:inset 0 0 30px rgba(0,0,0,.9);position:relative;overflow:hidden}
+.lcd::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(#0000 0 2px,rgba(0,0,0,.18) 2px 3px);pointer-events:none}
+.lcd.off{color:#3a2c10;text-shadow:none}
+.lcd.glitch .ps,.lcd.glitch .freq{animation:flick .18s steps(2) infinite}
+@keyframes flick{0%{opacity:1}50%{opacity:.55}100%{opacity:.9}}
+@media (prefers-reduced-motion:reduce){.lcd.glitch .ps,.lcd.glitch .freq{animation:none}}
+.lcd-r1{display:flex;align-items:baseline;gap:6px}
+.freq{font:800 44px/1 var(--mono);letter-spacing:-.02em}
+.unit{font:600 13px var(--mono);opacity:.8}
+.ind{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:150px}
+.ind span{font:600 10px var(--mono);padding:1px 4px;border:1px solid currentColor;border-radius:2px;opacity:.22}
+.ind span.on{opacity:1}
+.ps{font:800 26px/1.15 var(--mono);letter-spacing:.14em;margin-top:6px;white-space:pre}
+.rt{font:13px var(--mono);white-space:pre;margin-top:4px;height:18px;overflow:hidden}
+.lcd-f{display:flex;gap:12px;font:11px var(--mono);margin-top:6px;opacity:.85;flex-wrap:wrap}
+.presets{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:6px;margin:10px 0 8px}
+.pre{background:#0b1218;border:1px solid var(--line);border-left:3px solid var(--c);border-radius:5px;padding:5px 7px;text-align:left;display:flex;flex-direction:column;gap:1px}
+.pre b{font:600 10px var(--mono);color:var(--dim)}
+.pre span{font-weight:600;font-size:13px}
+.pre em{font:normal 10.5px var(--mono);color:var(--dim)}
+.pre.on{background:rgba(255,255,255,.06);border-color:var(--c)}
+.ctrl{display:flex;align-items:center;gap:6px}
+.ctrl input[type=range]{flex:1}
+.pwr.on{background:rgba(53,255,154,.16);border-color:var(--gr);color:var(--gr)}
+
+/* ---------- medidores ---------- */
+.meters{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.mtr{background:var(--glass2);border:1px solid var(--line);border-radius:6px;padding:7px 9px}
+.mtr small{color:var(--dim);font-size:11px;display:block}
+.mtr b{font:600 17px var(--mono)}
+.mtr b i{font:normal 11px var(--mono);color:var(--dim);margin-left:3px}
+.bar{height:7px;margin-top:5px;border-radius:2px;position:relative;overflow:hidden;background:linear-gradient(90deg,var(--rd),var(--am) 45%,var(--gr))}
+.bar>i{position:absolute;right:0;top:0;bottom:0;background:#0b1218;transition:width .12s linear}
+.bar::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,#0000 0 6px,rgba(6,9,13,.85) 6px 7px)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font:12px var(--mono);margin-top:8px}
+.kv dt{color:var(--dim)}.kv dd{margin:0;text-align:right}
+.los-ok{color:var(--gr)}.los-mid{color:var(--am)}.los-bad{color:var(--rd)}
+.log{font:11px/1.5 var(--mono);color:var(--dim);background:#070d13;border:1px solid var(--line);border-radius:6px;padding:6px 8px;height:104px;overflow:hidden;margin-top:8px}
+.log p{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.log .w{color:var(--am)}.log .g{color:var(--gr)}.log .r{color:var(--rd)}
+
+/* ---------- emisoras ---------- */
+.stn{border:1px solid var(--line);border-radius:8px;margin-bottom:10px;background:var(--glass2)}
+.stn.sel{border-color:var(--line2)}
+.stn-h{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c)}
+.stn-h b{font-weight:600}.stn-h small{color:var(--dim);font-family:var(--mono);font-size:11px}
+.stn-b{display:none;padding:2px 10px 10px;border-top:1px solid var(--line)}
+.stn.open .stn-b{display:block}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.twc{border:1px solid var(--line);border-radius:6px;padding:7px 8px;margin-top:8px;background:#0a1017}
+.twc.off{opacity:.55}
+.twc-h{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.twc-h .nm{font-family:var(--ui);font-weight:500}
+.tw-live{display:flex;align-items:center;gap:8px;margin-top:6px;font:11px var(--mono);color:var(--dim)}
+.tw-live span{min-width:72px}
+.tw-live .bar{flex:1;margin:0}
+.sw{position:relative;width:30px;height:16px;flex:none}
+.sw input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer;z-index:1}
+.sw span{position:absolute;inset:0;background:#1a252f;border-radius:9px;transition:.15s}
+.sw span::after{content:"";position:absolute;left:2px;top:2px;width:12px;height:12px;border-radius:50%;background:#7c93a3;transition:.15s}
+.sw input:checked+span{background:rgba(53,255,154,.3)}
+.sw input:checked+span::after{transform:translateX(14px);background:var(--gr)}
+.seg{display:flex;border:1px solid var(--line2);border-radius:6px;overflow:hidden}
+.seg button{flex:1;background:none;border:0;padding:5px 6px;color:var(--dim)}
+.seg button.on{background:rgba(79,216,255,.16);color:var(--cy)}
+.legend{display:flex;flex-direction:column;gap:5px;font:12px var(--mono);margin-top:6px}
+.legend i{display:inline-block;width:22px;height:10px;border-radius:2px;margin-right:8px;vertical-align:-1px;border:1px solid #35ff9a}
+.note{color:var(--dim);font-size:12px;line-height:1.45}
+
+/* ---------- herramientas del mapa ---------- */
+#tools{position:absolute;top:12px;right:12px;display:flex;flex-direction:column;gap:6px;z-index:5;align-items:flex-end}
+#tools .btn{background:var(--glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+#tools .btn.on{background:rgba(53,255,154,.18)}
+#covStat{font:11px var(--mono);color:var(--dim);background:var(--glass);padding:3px 8px;border-radius:5px;border:1px solid var(--line)}
+
+/* ---------- dock inferior ---------- */
+#dock{position:absolute;left:calc(var(--pw) + 24px);right:12px;bottom:12px;height:196px;z-index:4;display:grid;grid-template-columns:1.25fr 1.1fr 1fr;gap:1px;padding:0;overflow:hidden}
+#dock.min{height:30px}
+#dock.min .cell{display:none}
+.cell{position:relative;border-right:1px solid var(--line);padding:6px 8px 4px;min-width:0}
+.cell:last-of-type{border-right:0}
+.cell h4{margin:0 0 2px;font:600 11px var(--ui);color:var(--dim)}
+.cell canvas{position:absolute;left:8px;top:20px;width:calc(100% - 16px);height:calc(100% - 24px);display:block}
+#dockBtn{position:absolute;right:6px;top:3px;z-index:2;font-size:11px;padding:1px 7px}
+#dock.min #dockBtn{top:2px}
+#dockTitle{display:none;position:absolute;left:10px;top:6px;font:11px var(--ui);color:var(--dim)}
+#dock.min #dockTitle{display:block}
+
+/* ---------- marcadores ---------- */
+.mk{cursor:grab}
+.mk-in{position:relative;display:flex;flex-direction:column;align-items:center;transition:opacity .2s,filter .2s}
+.mk svg{width:22px;height:32px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.7))}
+.mk-l{position:absolute;top:-17px;white-space:nowrap;font:600 10px var(--mono);background:rgba(6,9,13,.82);border:1px solid var(--c);color:#e8f3fa;padding:1px 5px;border-radius:3px;transform:translateY(-2px)}
+.mk.dim .mk-in{opacity:.55}
+.mk.off .mk-in{opacity:.25;filter:grayscale(1)}
+.mk.serving svg{filter:drop-shadow(0 0 7px var(--c)) drop-shadow(0 0 3px var(--c))}
+.mk.serving .mk-l{background:var(--c);color:#04070a}
+.car{cursor:grab}
+.car-in{width:30px;height:30px;transition:transform .12s linear}
+.car-in svg{width:100%;height:100%;filter:drop-shadow(0 0 6px rgba(79,216,255,.9))}
+.maplibregl-ctrl-attrib{background:rgba(6,9,13,.7)!important;color:#7f97a6!important}
+.maplibregl-ctrl-attrib a{color:#9fc5d8!important}
+#toast{position:absolute;left:50%;top:16px;transform:translateX(-50%);z-index:9;background:var(--glass);border:1px solid var(--line2);padding:8px 14px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .25s;font-size:13px}
+#toast.on{opacity:1}
+body.placing #map,body.placing #map .maplibregl-canvas,body.placing #map .maplibregl-canvas-container.maplibregl-interactive{cursor:crosshair!important}
+
+@media (max-width:900px){
+  :root{--pw:calc(100% - 24px)}
+  #panel{top:auto;height:52vh}
+  #dock{display:none}
+  #tools{top:8px;right:8px}
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<!-- ============================ PANEL LATERAL ============================ -->
+<aside id="panel" class="glass">
+  <header class="brand">
+    <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path d="M2 15 Q6 3 10 15 T18 15 T26 15" fill="none" stroke="#4fd8ff" stroke-width="2"/><circle cx="26" cy="15" r="2.4" fill="#35ff9a"/></svg>
+    <div><h1>RF·LAB</h1><p>Propagación FM y RDS sobre relieve real</p></div>
+    <div class="dem" id="demStat" title="Teselas de elevación descargadas (modelo digital del terreno)">DEM 0</div>
+  </header>
+  <nav class="tabs">
+    <button class="tab on" data-tab="rx">Receptor</button>
+    <button class="tab" data-tab="st">Emisoras</button>
+    <button class="tab" data-tab="map">Mapa y física</button>
+  </nav>
+
+  <div class="pages">
+    <!-- ---------------- RECEPTOR ---------------- -->
+    <section id="pg-rx" class="page on">
+      <div class="hu">
+        <div class="hu-top"><span class="led" id="ledPwr"></span><span id="huState">Receptor apagado</span><span class="badge" id="srcBadge">SIN FUENTE</span></div>
+        <div class="lcd off" id="lcd">
+          <div class="lcd-r1"><span class="freq" id="lcdFreq">--.--</span><span class="unit">MHz</span>
+            <div class="ind"><span id="iST">ST</span><span id="iTP">TP</span><span id="iTA">TA</span><span id="iAF">AF</span><span id="iRDS">RDS</span></div></div>
+          <div class="ps" id="lcdPS">        </div>
+          <div class="rt" id="lcdRT"></div>
+          <div class="lcd-f"><span>PI <b id="lcdPI">----</b></span><span>PTY <b id="lcdPTY">--</b></span><span id="lcdAF"></span></div>
+        </div>
+        <div class="presets" id="presets"></div>
+        <div class="ctrl">
+          <button class="btn" id="btnPrev" title="Emisora anterior">◀</button>
+          <button class="btn pwr" id="btnPwr">Encender</button>
+          <button class="btn" id="btnNext" title="Emisora siguiente">▶</button>
+          <input type="range" id="vol" min="0" max="100" value="75" aria-label="Volumen">
+          <button class="btn sm" id="btnMute">Mute</button>
+        </div>
+      </div>
+
+      <div class="meters">
+        <div class="mtr"><small>Nivel de señal (RSSI)</small><b id="mRssi">--</b><b><i id="mUv"></i></b><div class="bar"><i id="bRssi"></i></div></div>
+        <div class="mtr"><small>Relación señal/ruido (SINR)</small><b id="mSinr">--</b><b><i>dB</i></b><div class="bar"><i id="bSinr"></i></div></div>
+        <div class="mtr"><small>Distorsión armónica</small><b id="mThd">--</b><b><i>%</i></b><div class="bar"><i id="bThd"></i></div></div>
+        <div class="mtr"><small>Separación estéreo</small><b id="mSep">--</b><b><i>%</i></b><div class="bar"><i id="bSep"></i></div></div>
+      </div>
+
+      <h3>Enlace con la torre activa</h3>
+      <dl class="kv">
+        <dt>Torre enganchada</dt><dd id="lkTower">—</dd>
+        <dt>Distancia</dt><dd id="lkDist">—</dd>
+        <dt>Pérdida espacio libre</dt><dd id="lkFs">—</dd>
+        <dt>Difracción / relieve</dt><dd id="lkDiff">—</dd>
+        <dt>Estado de línea de vista</dt><dd id="lkLos">—</dd>
+        <dt>Altitud del vehículo</dt><dd id="lkAlt">—</dd>
+        <dt>Interferencia</dt><dd id="lkInt">ninguna</dd>
+      </dl>
+
+      <h3>Ruta de demostración</h3>
+      <div class="row">
+        <button class="btn" id="btnRoute">▶ Recorrer A-66 (Oviedo–León)</button>
+      </div>
+      <label class="f" style="margin-top:8px">Velocidad simulada: <span id="spdVal" class="mono">250</span> km/h
+        <input type="range" id="spd" min="40" max="900" value="250"></label>
+      <p class="note">También puedes arrastrar el coche por cualquier punto del mapa. Cruza la Cordillera Cantábrica y observa cómo cambian el audio y el RDS.</p>
+
+      <h3>Registro del receptor</h3>
+      <div class="log" id="log"></div>
+    </section>
+
+    <!-- ---------------- EMISORAS ---------------- -->
+    <section id="pg-st" class="page">
+      <div class="row" style="margin-bottom:10px">
+        <button class="btn grow" id="btnAddStation">+ Nueva emisora</button>
+        <button class="btn grow" id="btnPlace">+ Torre (clic en el mapa)</button>
+      </div>
+      <div id="stations"></div>
+      <div class="row" style="margin:4px 0 10px"><button class="btn sm warn grow" id="btnReset">Restablecer emisoras y ajustes por defecto</button></div>
+      <p class="note">Las coordenadas, potencias y frecuencias de las torres precargadas son <b>ilustrativas</b> (no reflejan datos oficiales de las cadenas). Arrastra cualquier torre por el mapa para recolocarla. Todos los cambios se guardan automáticamente en este navegador. Las URL de streaming pueden cambiar o estar geobloqueadas; si fallan, el receptor usa un generador de audio de demostración.</p>
+    </section>
+
+    <!-- ---------------- MAPA Y FÍSICA ---------------- -->
+    <section id="pg-map" class="page">
+      <h3>Nubes de cobertura</h3>
+      <div class="row"><label class="sw"><input type="checkbox" id="swCov" checked><span></span></label><span>Mostrar áreas de propagación</span></div>
+      <div class="seg" style="margin-top:8px" id="segScope"><button data-v="tuned" class="on">Emisora sintonizada</button><button data-v="all">Todas las emisoras</button></div>
+      <div class="legend" id="legend"></div>
+
+      <h3>Mapa base</h3>
+      <div class="seg" id="segBase"><button data-v="dark" class="on">Oscuro</button><button data-v="sat">Satélite</button><button data-v="topo">Topográfico</button></div>
+      <label class="f" style="margin-top:8px">Exageración del relieve 3D: <span id="exVal" class="mono">1.4</span>×
+        <input type="range" id="exag" min="1" max="3" step="0.1" value="1.4"></label>
+      <div class="row" style="margin-top:8px"><button class="btn grow" id="btnTilt">Vista cenital / 3D</button><button class="btn grow" id="btnHome">Centrar Cantábrica</button></div>
+
+      <h3>Parámetros del modelo físico</h3>
+      <label class="f">Suelo de ruido del receptor: <span id="nzVal" class="mono">-105</span> dBm
+        <input type="range" id="noise" min="-118" max="-92" step="1" value="-105"></label>
+      <label class="f" style="margin-top:8px">Pérdidas de entorno (clutter)
+        <select id="env"><option value="6">Rural abierto · 6 dB</option><option value="12" selected>Suburbano / arbolado · 12 dB</option><option value="18">Urbano denso · 18 dB</option></select></label>
+      <label class="f" style="margin-top:8px">Ganancia de la antena del coche: <span id="rxVal" class="mono">-2</span> dBd
+        <input type="range" id="rxg" min="-8" max="3" step="0.5" value="-2"></label>
+
+      <h3>Cómo se calcula la señal</h3>
+      <p class="note">
+        <b>1.</b> Se muestrea el relieve real (teselas Terrarium, ~220 m/px) a lo largo del trayecto torre → vehículo.<br>
+        <b>2.</b> Se corrige la curvatura terrestre con radio efectivo 4/3 y se obtiene el perfil de obstáculos.<br>
+        <b>3.</b> Difracción por filo de cuchillo (ITU-R P.526) con método de Deygout para hasta tres crestas: es la «sombra orográfica».<br>
+        <b>4.</b> Se suman pérdida en espacio libre, exceso tras el horizonte radioeléctrico (según altura efectiva sobre el terreno) y pérdidas de entorno.<br>
+        <b>5.</b> El receptor elige la torre con mayor RSSI (con histéresis de 3 dB, como la conmutación AF del RDS) y calcula SINR con ruido más interferencia co-canal y de canal adyacente.
+      </p>
+    </section>
+  </div>
+</aside>
+
+<div id="tools">
+  <button class="btn on" id="btnCov">☁ Nubes de cobertura: ON</button>
+  <div id="covStat">Cobertura: —</div>
+</div>
+
+<section id="dock" class="glass">
+  <span id="dockTitle">Instrumentos</span>
+  <button class="btn sm" id="dockBtn">Ocultar</button>
+  <div class="cell"><h4>Perfil del enlace: relieve, línea de vista y zona de Fresnel</h4><canvas id="cvProf"></canvas></div>
+  <div class="cell"><h4>Analizador de espectro FM (87,5–108 MHz)</h4><canvas id="cvSpec"></canvas></div>
+  <div class="cell"><h4>SINR en los últimos 60 s</h4><canvas id="cvHist"></canvas></div>
+</section>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+'use strict';
+/* =====================================================================
+   RF·LAB — Simulador de propagación FM/RDS
+   Secciones:
+     1. Utilidades y constantes
+     2. Datos: emisoras y torres
+     3. DEM (modelo digital del terreno) leído de teselas Terrarium
+     4. Motor físico (pérdidas, difracción, enlace)   [PHYS-START/END]
+     5. Cálculo de cobertura radial (nubes verdes)
+     6. Audio (Web Audio): estéreo, ruido, filtro, generador demo
+     7. Receptor: selección de torre, SINR, RDS
+     8. Mapa (MapLibre GL), marcadores y capas
+     9. Interfaz (paneles, editor de torres, instrumentos)
+   ===================================================================== */
+
+/* ============================ 1. UTILIDADES ============================ */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const clamp  = (x, a, b) => Math.min(b, Math.max(a, x));
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const D2R = Math.PI / 180;
+let _uid = 1; const uid = () => _uid++;
+const KM_DEG = 111.195;                       // km por grado de latitud
+const R_EARTH = 6371000, KFAC = 4 / 3, RE_EFF = R_EARTH * KFAC;   // radio efectivo (refracción estándar)
+const RX_H = 1.5;                              // altura de la antena del coche (m)
+const DEM_Z = 9;                               // zoom de las teselas de elevación
+const DEM_URL = (z, x, y) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`;
+
+/* Ajustes globales del modelo (editables en la pestaña «Mapa y física») */
+const settings = { noise: -105, env: 12, rxGain: -2, coverage: true, scope: 'tuned', exag: 1.4, base: 'dark' };
+
+function haversineKm(lng1, lat1, lng2, lat2) {
+  const dLat = (lat2 - lat1) * D2R, dLng = (lng2 - lng1) * D2R;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * D2R) * Math.cos(lat2 * D2R) * Math.sin(dLng / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(a));
+}
+
+/* ======================= 2. DATOS: EMISORAS Y TORRES ==================== */
+/* Cada emisora (marca) tiene N torres; cada torre: posición, ERP (kW), altura (m),
+   ganancia/directividad (dB sobre la ERP nominal) y frecuencia propia (MHz).
+   Coordenadas y frecuencias ILUSTRATIVAS. */
+const mkTower = (name, lat, lng, erp, h, gain, freq) => ({ id: uid(), name, lat, lng, erp, h, gain, freq, active: true, rssi: -200 });
+const PALETTE = ['#ff5fa8', '#ff4d4d', '#3db8ff', '#ffb340', '#9b7dff', '#35ff9a'];
+
+const stations = [
+  { id: uid(), name: 'HIT FM', ps: ' HIT FM ', pi: 'C3A1', pty: 'Pop Music', color: '#ff5fa8',
+    url: 'https://hitfm.kissfmradio.cires21.com/hitfm.mp3',
+    rt: ['HIT FM · Los éxitos del momento', 'Simulación RDS: RadioText dinámico', 'Señal recibida por la torre de mayor nivel'],
+    towers: [
+      mkTower('Oviedo · Naranco',        43.383, -5.870, 5,  50, 3, 98.4),
+      mkTower('León · Teleco',           42.606, -5.590, 4,  45, 2, 101.2),
+      mkTower('Santander · Peña Cabarga',43.395, -3.770, 8,  60, 3, 95.7),
+      mkTower('Burgos · Alto',           42.340, -3.670, 3,  40, 2, 103.5) ] },
+  { id: uid(), name: 'KISS FM', ps: 'KISS FM ', pi: 'C3B2', pty: 'Pop Music', color: '#ff4d4d',
+    url: 'https://kissfm.kissfmradio.cires21.com/kissfm.mp3',
+    rt: ['KISS FM · 80s, 90s y clásicos', 'Simulación RDS · datos ilustrativos', 'Conmutación AF automática activa'],
+    towers: [
+      mkTower('Gijón · Monte Deva',      43.523, -5.615, 4,  55, 3, 102.6),
+      mkTower('León · Polígono',         42.610, -5.530, 3,  35, 2, 99.9),
+      mkTower('Ponferrada · Montearenas',42.545, -6.590, 3,  40, 2, 91.5),
+      mkTower('Palencia · Cerro',        42.020, -4.530, 4,  45, 2, 106.1) ] },
+  { id: uid(), name: 'EUROPA FM', ps: 'EUROPAFM', pi: 'C3C3', pty: 'Pop Music', color: '#3db8ff',
+    url: 'https://atres-live.europafm.com/live/europafm/master.m3u8',  // HLS: solo Safari lo reproduce nativamente; en otros navegadores entra el generador demo
+    rt: ['EUROPA FM · Música y compañía', 'Simulación RDS · Reemisor de puerto', 'Prueba el paso de Pajares en ruta'],
+    towers: [
+      mkTower('Oviedo · Naranco (Europa)',43.381, -5.865, 5,  50, 3, 100.7),
+      mkTower('Puerto de Pajares · reemisor', 42.999, -5.766, 0.8, 25, 1, 88.9),
+      mkTower('Valladolid · Torrecilla', 41.650, -4.720, 6,  70, 3, 106.1),   // co-canal con KISS Palencia (106.1)
+      mkTower('Bilbao · Archanda',       43.283, -2.920, 5,  50, 3, 97.3) ] }
+];
+
+/* Ruta de demostración (aproximada, A-66 Oviedo → León) */
+const ROUTE = [[-5.849,43.361],[-5.775,43.250],[-5.827,43.160],[-5.822,43.115],[-5.766,42.997],[-5.700,42.873],[-5.620,42.800],[-5.571,42.599]];
+
+/* ============== 3. DEM: elevación real desde teselas Terrarium ========== */
+/* Terrarium: elevación(m) = R*256 + G + B/256 − 32768. Se decodifica con un canvas y se cachea. */
+const DEM = {
+  tiles: new Map(), loaded: 0, failed: 0, onLoad: null,
+  request(tx, ty) {
+    const n = 1 << DEM_Z;
+    if (ty < 0 || ty >= n) return null;
+    tx = ((tx % n) + n) % n;
+    const k = tx * 65536 + ty;
+    let t = this.tiles.get(k);
+    if (t) return t;
+    t = { ready: false, data: null, promise: null };
+    t.promise = new Promise(res => {
+      const img = new Image(); img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const c = document.createElement('canvas'); c.width = c.height = 256;
+        const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0);
+        const px = g.getImageData(0, 0, 256, 256).data, d = new Float32Array(65536);
+        for (let i = 0; i < 65536; i++) { const e = px[i*4] * 256 + px[i*4+1] + px[i*4+2] / 256 - 32768; d[i] = e > 0 ? e : 0; } // el mar se trata como 0 m
+        t.data = d; t.ready = true; this.loaded++; this.stat(); if (this.onLoad) this.onLoad(); res();
+      };
+      let tries = 0; img.onerror = () => { if (++tries < 3) { setTimeout(() => { img.src = DEM_URL(DEM_Z, tx, ty); }, 700 * tries); return; } t.data = new Float32Array(65536); t.ready = true; this.failed++; this.stat(); res(); };
+      img.src = DEM_URL(DEM_Z, tx, ty);
+    });
+    this.tiles.set(k, t);
+    return t;
+  },
+  stat() { const el = $('#demStat'); if (el) el.textContent = 'DEM ' + this.loaded + (this.failed ? ' ⚠' + this.failed : ''); },
+  px(gx, gy) {                                   // píxel global entero
+    const W = (1 << DEM_Z) * 256;
+    gx = ((gx % W) + W) % W; gy = clamp(gy, 0, W - 1);
+    const tx = gx >> 8, ty = gy >> 8;
+    let t = this.tiles.get(tx * 65536 + ty);
+    if (!t) t = this.request(tx, ty);
+    return (t && t.ready) ? t.data[((gy & 255) << 8) | (gx & 255)] : 0;   // si aún no ha llegado: 0 y se recalculará al cargar
+  },
+  elev(lng, lat) {                               // interpolación bilineal
+    const W = (1 << DEM_Z) * 256, s = Math.sin(lat * D2R);
+    const gx = (lng + 180) / 360 * W - 0.5, gy = (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * W - 0.5;
+    const x0 = Math.floor(gx), y0 = Math.floor(gy), fx = gx - x0, fy = gy - y0;
+    const a = this.px(x0, y0), b = this.px(x0 + 1, y0), c = this.px(x0, y0 + 1), d = this.px(x0 + 1, y0 + 1);
+    return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy;
+  },
+  ensureBBox(minLng, minLat, maxLng, maxLat) {   // precarga de teselas antes de calcular cobertura
+    const n = 1 << DEM_Z;
+    const tx = l => Math.floor((l + 180) / 360 * n);
+    const ty = l => { const s = Math.sin(l * D2R); return Math.floor((0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n); };
+    const ps = [];
+    for (let x = tx(minLng); x <= tx(maxLng); x++) for (let y = ty(maxLat); y <= ty(minLat); y++) {
+      const t = this.request(x, y); if (t && !t.ready) ps.push(t.promise);
+    }
+    return Promise.all(ps);
+  }
+};
+
+/* ====================== 4. MOTOR FÍSICO DE PROPAGACIÓN ================== */
+/*PHYS-START*/
+const scratchE = new Float32Array(4096);
+
+/* Pérdida en espacio libre (dB): d en km, f en MHz */
+const FSPL = (dKm, fMHz) => 32.44 + 20 * Math.log10(fMHz) + 20 * Math.log10(dKm);
+
+/* Pérdida por difracción de filo de cuchillo, aproximación ITU-R P.526: J(ν) */
+function Jloss(v) {
+  if (v <= -0.78) return 0;
+  const t = v - 0.1;
+  return 6.9 + 20 * Math.log10(Math.sqrt(t * t + 1) + t);
+}
+
+/* Método de Deygout: busca la cresta dominante (mayor ν) del tramo [a,b], suma su pérdida y
+   recurre sobre los dos subtramos para las crestas secundarias (profundidad máx. 2 → 3 crestas).
+   E = perfil efectivo (terreno + abombamiento terrestre); rec guarda la cresta principal para el gráfico. */
+function deygout(E, a, b, stepM, lam, depth, rec) {
+  if (b - a < 2) return 0;
+  const ha = E[a], hb = E[b], span = b - a, L = span * stepM;
+  let vMax = -1e9, m = -1;
+  for (let i = a + 1; i < b; i++) {
+    const d1 = (i - a) * stepM, d2 = L - d1;
+    const h = E[i] - (ha + (hb - ha) * (i - a) / span);        // altura del obstáculo sobre la línea de vista (m)
+    const v = h * Math.sqrt(2 * L / (lam * d1 * d2));          // parámetro de Fresnel-Kirchhoff ν
+    if (v > vMax) { vMax = v; m = i; }
+  }
+  if (depth === 0 && rec) { rec.v = vMax; rec.i = m; }
+  if (vMax <= (depth === 0 ? -0.78 : 0.2)) return 0;          // crestas secundarias: solo si obstruyen de verdad (evita sumar "rasantes" de la curvatura)
+  let loss = Jloss(vMax) * (depth === 0 && vMax > 0 ? 1.2 : 1);   // corrección de cresta redondeada (una montaña no es un filo perfecto)
+  if (depth < 2) loss += deygout(E, a, m, stepM, lam, depth + 1, rec) + deygout(E, m, b, stepM, lam, depth + 1, rec);
+  return loss;
+}
+
+/* Pérdida total del trayecto. elev = perfil del terreno (m) con índice 0 en la torre y iEnd en el receptor. */
+function pathLoss(elev, iEnd, stepM, htAsl, htAgl, hrAsl, fMHz, rec) {
+  const lam = 299.79 / fMHz, D = iEnd * stepM, Dkm = Math.max(D / 1000, 0.05);
+  const E = scratchE;
+  for (let i = 1; i < iEnd; i++) { const d1 = i * stepM; E[i] = elev[i] + d1 * (D - d1) / (2 * RE_EFF); }  // abombamiento terrestre
+  E[0] = htAsl; E[iEnd] = hrAsl;
+  let diff = deygout(E, 0, iEnd, stepM, lam, 0, rec);
+  if (diff > 60) diff = 60;                                     // techo razonable (dispersión troposférica/multitrayecto)
+  // Altura efectiva de la antena sobre el terreno medio (3–15 km), estilo HAAT → distancia al horizonte radioeléctrico
+  const i3 = Math.ceil(3000 / stepM), i15 = Math.min(iEnd, Math.floor(15000 / stepM));
+  let s = 0, cnt = 0;
+  if (i15 - i3 >= 2) { for (let i = i3; i <= i15; i++) { s += elev[i]; cnt++; } }
+  else { for (let i = 0; i <= iEnd; i++) { s += elev[i]; cnt++; } }
+  const haat = Math.max(htAgl, htAsl - s / cnt);
+  const Dh = 4.12 * (Math.sqrt(haat) + Math.sqrt(RX_H));       // km, con k = 4/3
+  const excess = 0.5 * Math.max(0, Dkm - Dh);                  // decaimiento adicional tras el horizonte (dB)
+  const fs = FSPL(Dkm, fMHz);
+  return { fs, diff, excess, Dh, total: fs + diff + excess };
+}
+const erpDbm = tw => 10 * Math.log10(Math.max(tw.erp, 1e-4)) + 60 + tw.gain;   // kW → dBm (+ ajuste de directividad)
+/*PHYS-END*/
+
+/* Enlace en vivo torre → posición del vehículo (con perfil completo para los gráficos) */
+function computeLink(tw, lng, lat) {
+  const dRaw = haversineKm(tw.lng, tw.lat, lng, lat), dKm = Math.max(dRaw, 0.05);
+  if (dKm > 260) return { rssi: -200, dKm, far: true };
+  const N = clamp(Math.ceil(dKm / 0.25), 8, 400), stepM = dKm * 1000 / N;
+  const elev = new Float32Array(N + 1);
+  for (let i = 0; i <= N; i++) { const f = i / N; elev[i] = DEM.elev(tw.lng + (lng - tw.lng) * f, tw.lat + (lat - tw.lat) * f); }
+  const htAsl = elev[0] + tw.h, hrAsl = elev[N] + RX_H, rec = { v: -9, i: 0 };
+  const pl = pathLoss(elev, N, stepM, htAsl, tw.h, hrAsl, tw.freq, rec);
+  // Desvanecimiento por multitrayecto de pequeña escala (ripple determinista que varía al mover el coche)
+  const fade = 1.6 * Math.sin(lng * 5200 + tw.id) + 1.2 * Math.sin(lat * 6100 + 2.3 * tw.id);
+  const rssi = Math.min(-15, erpDbm(tw) + settings.rxGain - pl.total - settings.env + fade);
+  return { rssi, dKm, pl, elev, N, stepM, htAsl, hrAsl, rec, f: tw.freq, far: false };
+}
+
+/* =================== 5. COBERTURA RADIAL (nubes verdes) ================= */
+/* Para cada torre se lanzan RAYS radiales de RMAX km; en cada km se evalúa RSSI con el mismo motor físico.
+   La rejilla resultante se cachea y se umbraliza en tres niveles respecto al suelo de ruido. */
+const RAYS = 120, RMAX = 90, RSTEP = 0.5;
+const tick = () => new Promise(r => setTimeout(r, 0));
+let covToken = 0, covTimer = null;
+
+async function getRadial(tw, tk) {
+  const key = [tw.lng.toFixed(4), tw.lat.toFixed(4), tw.erp, tw.h, tw.gain, tw.freq, settings.env, settings.rxGain].join('|');
+  if (tw._rad && tw._rad.key === key) return tw._rad.grid;
+  const cosLat = Math.cos(tw.lat * D2R), dLat = RMAX / KM_DEG, dLng = RMAX / (KM_DEG * cosLat);
+  await DEM.ensureBBox(tw.lng - dLng, tw.lat - dLat, tw.lng + dLng, tw.lat + dLat);
+  if (tk !== covToken) return null;
+  const NS = Math.round(RMAX / RSTEP), grid = new Float32Array(RAYS * RMAX).fill(-200), elev = new Float32Array(NS + 1);
+  const htAsl = DEM.elev(tw.lng, tw.lat) + tw.h, pw = erpDbm(tw);
+  for (let r = 0; r < RAYS; r++) {
+    const b = r / RAYS * 2 * Math.PI, sb = Math.sin(b), cb = Math.cos(b);
+    for (let i = 0; i <= NS; i++) { const d = i * RSTEP; elev[i] = DEM.elev(tw.lng + d * sb / (KM_DEG * cosLat), tw.lat + d * cb / KM_DEG); }
+    let miss = 0;
+    for (let k = 1; k <= RMAX; k++) {
+      const iEnd = Math.round(k / RSTEP);
+      const pl = pathLoss(elev, iEnd, RSTEP * 1000, htAsl, tw.h, elev[iEnd] + RX_H, tw.freq, null);
+      const v = pw + settings.rxGain - pl.total - settings.env;
+      grid[r * RMAX + k - 1] = v;
+      if (v < -125) { if (++miss > 12) break; } else miss = 0;    // corte anticipado cuando ya no hay señal útil
+    }
+    if (r % 6 === 5) { await tick(); if (tk !== covToken) return null; }
+  }
+  tw._rad = { key, grid };
+  return grid;
+}
+
+/* Polígono de un nivel: por cada rayo, radio del último km con RSSI ≥ nivel (tolerando pequeños huecos) */
+function ringFor(tw, grid, level) {
+  const rad = new Float32Array(RAYS);
+  for (let r = 0; r < RAYS; r++) {
+    let last = 0.3, gap = 0;
+    for (let k = 1; k <= RMAX; k++) { if (grid[r * RMAX + k - 1] >= level) { last = k; gap = 0; } else if (++gap > 4) break; }
+    rad[r] = last;
+  }
+  const cosLat = Math.cos(tw.lat * D2R), pts = [];
+  for (let r = 0; r <= RAYS; r++) {
+    const i = r % RAYS, rr = (rad[(i + RAYS - 1) % RAYS] + 2 * rad[i] + rad[(i + 1) % RAYS]) / 4;   // suavizado
+    const b = i / RAYS * 2 * Math.PI;
+    pts.push([tw.lng + rr * Math.sin(b) / (KM_DEG * cosLat), tw.lat + rr * Math.cos(b) / KM_DEG]);
+  }
+  return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [pts] } };
+}
+const covLevels = () => [settings.noise + 35, settings.noise + 18, settings.noise + 8];   // estéreo nítido / mono limpio / umbral RDS
+
+function scheduleCoverage(delay = 450) { clearTimeout(covTimer); covTimer = setTimeout(refreshCoverage, delay); }
+async function refreshCoverage() {
+  const tk = ++covToken;
+  try { if (!map || !map.getSource('cov1')) return; } catch (e) { return; }
+  setCovVisible(settings.coverage);
+  updateLegend();
+  if (!settings.coverage) { setCovData([], [], []); $('#covStat').textContent = 'Cobertura: oculta'; return; }
+  const list = [];
+  stations.forEach((s, i) => { if (settings.scope === 'all' || i === RX.tuned) s.towers.forEach(t => t.active && list.push(t)); });
+  const f1 = [], f2 = [], f3 = [], [L1, L2, L3] = covLevels();
+  for (let n = 0; n < list.length; n++) {
+    $('#covStat').textContent = `Calculando ${n + 1}/${list.length} · ${list[n].name}`;
+    const g = await getRadial(list[n], tk);
+    if (tk !== covToken) return;
+    if (!g) continue;
+    f1.push(ringFor(list[n], g, L1)); f2.push(ringFor(list[n], g, L2)); f3.push(ringFor(list[n], g, L3));
+    setCovData(f1, f2, f3);
+  }
+  setCovData(f1, f2, f3);
+  $('#covStat').textContent = `Cobertura: ${list.length} torres`;
+}
+function setCovData(a, b, c) {
+  [['cov1', a], ['cov2', b], ['cov3', c]].forEach(([id, f]) => map.getSource(id).setData({ type: 'FeatureCollection', features: f }));
+}
+function setCovVisible(v) {
+  ['cov1', 'cov2', 'cov3'].forEach(id => ['-f', '-l'].forEach(s => map.setLayoutProperty(id + s, 'visibility', v ? 'visible' : 'none')));
+}
+function updateLegend() {
+  const [a, b, c] = covLevels(), f = x => `${x} dBm (${(x + 108.75).toFixed(0)} dBµV)`;
+  $('#legend').innerHTML =
+    `<div><i style="background:rgba(53,255,154,.55)"></i>Estéreo nítido ≥ ${f(a)}</div>` +
+    `<div><i style="background:rgba(53,255,154,.32)"></i>Mono limpio ≥ ${f(b)}</div>` +
+    `<div><i style="background:rgba(53,255,154,.16)"></i>Umbral RDS/ruidoso ≥ ${f(c)}</div>`;
+}
+
+/* ============================ 6. AUDIO (Web Audio) ====================== */
+/* Cadena:  fuente(stream|generador) → inBus → splitter → mezcla estéreo↔mono → merger → paso bajo → VCA → master
+            ruido blanco filtrado ─────────────────────────────────────────────────────────────────→ master     */
+const AU = { ctx: null, mode: 'off', tk: 0, playing: false, wd: null, synthTimer: null };
+
+function auInit() {
+  if (AU.ctx) return;
+  const ctx = AU.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  AU.inBus = ctx.createGain();
+  const split = ctx.createChannelSplitter(2), merger = ctx.createChannelMerger(2);
+  AU.gLL = ctx.createGain(); AU.gRL = ctx.createGain(); AU.gLR = ctx.createGain(); AU.gRR = ctx.createGain();
+  AU.inBus.connect(split);
+  split.connect(AU.gLL, 0); split.connect(AU.gLR, 0); split.connect(AU.gRL, 1); split.connect(AU.gRR, 1);
+  AU.gLL.connect(merger, 0, 0); AU.gRL.connect(merger, 0, 0);       // canal izquierdo de salida = a·L + b·R
+  AU.gLR.connect(merger, 0, 1); AU.gRR.connect(merger, 0, 1);       // canal derecho de salida  = b·L + a·R
+  AU.lp = ctx.createBiquadFilter(); AU.lp.type = 'lowpass'; AU.lp.frequency.value = 15000;
+  AU.amp = ctx.createGain(); AU.master = ctx.createGain(); AU.master.gain.value = 0;
+  merger.connect(AU.lp); AU.lp.connect(AU.amp); AU.amp.connect(AU.master); AU.master.connect(ctx.destination);
+  // Ruido blanco (siseo analógico) — 2 s en bucle
+  const nb = AU.noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate), d = nb.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const ns = ctx.createBufferSource(); ns.buffer = nb; ns.loop = true;
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 900;
+  AU.noiseGain = ctx.createGain(); AU.noiseGain.gain.value = 0;
+  ns.connect(hp); hp.connect(AU.noiseGain); AU.noiseGain.connect(AU.master); ns.start();
+  // Elemento de streaming con CORS (permite procesarlo) y otro sin CORS (solo volumen)
+  AU.elCors = new Audio(); AU.elCors.crossOrigin = 'anonymous'; AU.elCors.preload = 'none';
+  ctx.createMediaElementSource(AU.elCors).connect(AU.inBus);
+  AU.elDirect = new Audio(); AU.elDirect.preload = 'none';
+}
+function setBadge(t, why) { const b = $('#srcBadge'); b.textContent = t; b.title = why || ''; }
+function killEls() {
+  [AU.elCors, AU.elDirect].forEach(el => { if (!el) return; el.onerror = null; el.onplaying = null; el.pause(); el.removeAttribute('src'); el.load(); });
+}
+function stopSource() { AU.tk++; clearTimeout(AU.wd); killEls(); stopSynth(); AU.playing = false; AU.mode = 'off'; setBadge('SIN FUENTE'); }
+
+/* Arranca la fuente: 1) stream con CORS (DSP completo) → 2) stream sin CORS (DSP limitado) → 3) generador demo */
+function startSource(st) {
+  stopSource();
+  const tk = AU.tk, order = st.url ? ['cors', 'direct', 'synth'] : ['synth']; let idx = 0, att = 0;
+  const next = why => {
+    if (tk !== AU.tk || idx >= order.length) return;
+    const my = ++att;                                   // cada intento tiene su id: los fallos de intentos anteriores se ignoran
+    killEls(); stopSynth(); clearTimeout(AU.wd);
+    const m = order[idx++]; AU.mode = m; AU.playing = false;
+    if (m === 'synth') { startSynth(st); setBadge('GENERADOR DEMO', why); if (why) log('Stream no disponible (' + why + '): generador de audio demo', 'w'); return; }
+    const el = m === 'cors' ? AU.elCors : AU.elDirect, fail = w => { if (tk === AU.tk && my === att) next(w); };
+    setBadge('CONECTANDO…');
+    el.onplaying = () => { if (tk !== AU.tk || my !== att) return; AU.playing = true; clearTimeout(AU.wd); setBadge(m === 'cors' ? 'STREAM · DSP completo' : 'STREAM · DSP limitado'); if (m === 'direct') log('Stream sin CORS: solo volumen y ruido, sin mono/filtro', 'w'); };
+    el.onerror = () => fail('error');
+    AU.wd = setTimeout(() => { if (!AU.playing) fail('timeout'); }, 7000);
+    el.src = st.url;
+    const p = el.play(); if (p && p.catch) p.catch(e => { if (e && (e.name === 'AbortError' || e.name === 'NotAllowedError')) return; fail('rechazado'); });
+  };
+  next('');
+}
+
+/* Generador de música estéreo sintética (arpegios panoramizados + pad ancho + bombo/hi-hat) para poder oír
+   los efectos de estéreo↔mono y ruido aunque el streaming falle. Distinto tempo/tonalidad por emisora. */
+function stopSynth() { clearInterval(AU.synthTimer); AU.synthTimer = null; if (AU.synthBus) { try { AU.synthBus.disconnect(); } catch (e) {} AU.synthBus = null; } }
+function startSynth(st) {
+  const ctx = AU.ctx; stopSynth();
+  const seed = [...st.name].reduce((a, c) => a + c.charCodeAt(0), 0);
+  const bpm = 96 + (seed % 5) * 9, step = 60 / bpm / 2, root = 45 + (seed % 7);
+  const scale = [0, 3, 7, 10, 12, 15, 19], prog = [0, -4, -2, -5];
+  const bus = AU.synthBus = ctx.createGain(); bus.gain.value = 0.55; bus.connect(AU.inBus);
+  const hz = n => 440 * Math.pow(2, (n - 69) / 12);
+  const voice = (n, t, pan, type, vol, dur, cut) => {
+    const o = ctx.createOscillator(), g = ctx.createGain(), p = ctx.createStereoPanner(); o.type = type; o.frequency.value = hz(n);
+    let out = o; if (cut) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = cut; o.connect(f); out = f; }
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    p.pan.value = pan; out.connect(g); g.connect(p); p.connect(bus); o.start(t); o.stop(t + dur + 0.05);
+  };
+  let n = 0;
+  AU.synthTimer = setInterval(() => {
+    const t = ctx.currentTime + 0.06, pos = n % 8, bar = Math.floor(n / 8) % 4, base = root + prog[bar];
+    voice(base + 12 + scale[(pos * 3 + bar) % scale.length], t, pos % 2 ? 0.85 : -0.85, 'triangle', 0.22, step * 2);
+    if (pos % 4 === 0) voice(base - 12, t, 0, 'sawtooth', 0.2, step * 3.6, 600);
+    if (pos === 0) { [0, 4, 7].forEach((iv, k) => { voice(base + 12 + iv, t, -1, 'sawtooth', 0.05, step * 7.5, 1800); voice(base + 12 + iv + 0.12, t, 1, 'sawtooth', 0.05, step * 7.5, 1800); }); }
+    if (pos === 0 || pos === 4) {                                  // bombo
+      const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12);
+      g.gain.setValueAtTime(0.7, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18); o.connect(g); g.connect(bus); o.start(t); o.stop(t + 0.2);
+    }
+    if (pos % 2 === 1) {                                           // hi-hat
+      const s = ctx.createBufferSource(), g = ctx.createGain(), f = ctx.createBiquadFilter(), p = ctx.createStereoPanner();
+      s.buffer = AU.noiseBuf; f.type = 'highpass'; f.frequency.value = 7000; p.pan.value = 0.4;
+      g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05); s.connect(f); f.connect(g); g.connect(p); p.connect(bus); s.start(t, Math.random()); s.stop(t + 0.06);
+    }
+    n++;
+  }, step * 1000);
+}
+
+/* Aplica la calidad de señal al audio: separación estéreo, ancho de banda, ruido, aleteo y silencios de conmutación */
+function auApply(now) {
+  if (!AU.ctx) return;
+  const m = RX.m, t = AU.ctx.currentTime, k = 0.06;
+  const a = (1 + m.stereo) / 2, b = (1 - m.stereo) / 2;
+  AU.gLL.gain.setTargetAtTime(a, t, k); AU.gRR.gain.setTargetAtTime(a, t, k);
+  AU.gRL.gain.setTargetAtTime(b, t, k); AU.gLR.gain.setTargetAtTime(b, t, k);
+  AU.lp.frequency.setTargetAtTime(m.lp, t, k);
+  // Aleteo (multitrayecto / «valla de estacas»): caídas aleatorias del audio cuando el SINR es bajo
+  let flutter = 1; if (m.sinr < 22 && Math.random() < (22 - m.sinr) / 30) flutter = 0.25 + Math.random() * 0.55;
+  const swapMute = now < RX.muteUntil;
+  const on = RX.on && !RX.mute;
+  const ag = (swapMute ? 0 : m.audioGain * flutter);
+  AU.amp.gain.setTargetAtTime(ag, t, 0.02);
+  // Chasquidos aleatorios cerca del umbral
+  let hiss = m.hiss; if (m.sinr < 14 && Math.random() < (14 - m.sinr) / 40) hiss *= 2.2;
+  if (swapMute) hiss = Math.max(hiss, 0.25);
+  AU.noiseGain.gain.setTargetAtTime(hiss, t, 0.03);
+  AU.master.gain.setTargetAtTime(on ? RX.vol : 0, t, 0.05);
+  if (AU.mode === 'direct') AU.elDirect.volume = clamp(on ? RX.vol * ag : 0, 0, 1);
+}
+
+/* ========================= 7. RECEPTOR (estado y RDS) =================== */
+const RX = {
+  on: false, tuned: 0, serving: null, vol: 0.75, mute: false,
+  car: { lng: -5.775, lat: 43.250, head: 180 },
+  m: { rssi: -200, sinr: -40, stereo: 0, audioGain: 0, lp: 2500, thd: 60, rdsP: 1, piLost: true, hiss: 0.4 },
+  muteUntil: 0, afFlash: 0, prof: null, interf: null, rtPos: 0, rtIdx: 0, rtTick: 0
+};
+const hist = [];     // historial SINR/RSSI
+const logLines = [];
+function log(msg, cls = '') {
+  const t = new Date().toLocaleTimeString('es-ES', { hour12: false });
+  logLines.push(`<p class="${cls}">${t} ${esc(msg)}</p>`); if (logLines.length > 7) logLines.shift();
+  const el = $('#log'); if (el) el.innerHTML = logLines.join('');
+}
+let dirty = true; const markDirty = () => { dirty = true; };
+
+/* Ciclo principal de cálculo: enlaces con todas las torres → torre servidora → SINR → métricas de audio/RDS */
+function update(now) {
+  const car = RX.car, st = stations[RX.tuned];
+  for (const s of stations) for (const tw of s.towers) {
+    if (!tw.active) { tw.rssi = -200; tw.link = null; continue; }
+    tw.link = computeLink(tw, car.lng, car.lat); tw.rssi = tw.link.rssi;
+  }
+  // Selección de torre: mayor RSSI con histéresis de 3 dB (efecto captura / conmutación AF)
+  let best = null;
+  for (const tw of st.towers) if (tw.active && (!best || tw.rssi > best.rssi)) best = tw;
+  const cur = (RX.serving && st.towers.includes(RX.serving) && RX.serving.active) ? RX.serving : null;
+  if (!cur) { RX.serving = best; if (best) log(`Enganchado a ${best.name} · ${best.freq.toFixed(1)} MHz`, 'g'); }
+  else if (best && best !== cur && best.rssi > cur.rssi + 3) {
+    log(`AF: ${cur.freq.toFixed(1)} → ${best.freq.toFixed(1)} MHz (${best.name}, +${(best.rssi - cur.rssi).toFixed(0)} dB)`, 'g');
+    RX.serving = best; RX.muteUntil = now + 260; RX.afFlash = now + 1400; RX.rtPos = 0;
+  }
+  const sv = RX.serving; let rssi = -200, sinr = -40, interf = null;
+  if (sv) {
+    rssi = sv.rssi;
+    let I = 0, worstP = -999;
+    for (const s of stations) for (const tw of s.towers) {
+      if (tw === sv || !tw.active) continue;
+      const df = Math.abs(tw.freq - sv.freq); let rej;
+      if (df < 0.05) rej = 0; else if (df < 0.25) rej = -35; else if (df < 0.45) rej = -60; else continue;  // co-canal / adyacente / 2º adyacente
+      const p = tw.rssi + rej; I += Math.pow(10, p / 10);
+      if (p > worstP) { worstP = p; interf = { s, tw, df, p }; }
+    }
+    sinr = rssi - 10 * Math.log10(Math.pow(10, settings.noise / 10) + I);
+    if (interf && interf.p < settings.noise - 3) interf = null;
+  }
+  RX.interf = interf;
+  // Funciones de transferencia calidad → comportamiento (umbrales típicos de un receptor FM de automóvil)
+  const m = RX.m;
+  m.rssi = rssi; m.sinr = sinr;
+  m.stereo = smooth(18, 32, sinr);                              // blend estéreo → mono entre 32 y 18 dB
+  m.lp = 2500 + 12500 * smooth(8, 30, sinr);                    // recorte de agudos (high-cut)
+  m.audioGain = sv ? smooth(1, 9, sinr) : 0;                    // silenciado suave por debajo del umbral
+  m.hiss = 0.34 * Math.pow(1 - smooth(6, 38, sinr), 1.4) + (sv ? 0 : 0.35);
+  m.thd = clamp(0.05 + 40 * Math.pow(10, -(sinr - 8) / 12), 0.05, 65);
+  m.rdsP = 0.95 * (1 - smooth(4, 14, sinr));                    // probabilidad de error por carácter RDS
+  m.piLost = !sv || sinr < 4;                                    // pérdida del bloque PI/PS
+  RX.prof = sv && sv.link && !sv.link.far ? sv.link : null;
+  if (now - (update.lastHist || 0) >= 100) { update.lastHist = now; hist.push({ s: sinr, r: rssi }); if (hist.length > 600) hist.shift(); }
+  auApply(now);
+  paintUI(now);
+}
+
+/* Corrupción de texto RDS: sustituye caracteres con probabilidad p por glifos de error */
+const GLYPHS = '#%&*?@$/\\<>=+~^0123456789ABCDEFGHXZ';
+const rndGlyph = () => GLYPHS[(Math.random() * GLYPHS.length) | 0];
+const corrupt = (s, p, hex) => [...s].map(c => Math.random() < p ? (hex ? '0123456789ABCDEF'[(Math.random() * 16) | 0] : rndGlyph()) : c).join('');
+
+/* Reloj del display RDS (≈7 Hz): PS/PI/RT con errores según el SINR, parpadeo y pérdida del bloque PI */
+function rdsTick() {
+  const lcd = $('#lcd'), now = performance.now();
+  if (!RX.on) {
+    lcd.classList.add('off'); lcd.classList.remove('glitch');
+    $('#lcdFreq').textContent = '--.--'; $('#lcdPS').textContent = '        '; $('#lcdRT').textContent = '';
+    $('#lcdPI').textContent = '----'; $('#lcdPTY').textContent = '--'; $('#lcdAF').textContent = '';
+    $$('.ind span').forEach(s => s.classList.remove('on')); return;
+  }
+  lcd.classList.remove('off');
+  const st = stations[RX.tuned], m = RX.m, sv = RX.serving, p = m.rdsP;
+  lcd.classList.toggle('glitch', p > 0.3);
+  $('#lcdFreq').textContent = sv ? sv.freq.toFixed(2) : '--.--';
+  let ps = (st.ps + '        ').slice(0, 8), pi = st.pi, pty = st.pty, rt = '';
+  if (now < RX.muteUntil) { ps = '········'; pi = '----'; }                       // conmutación AF en curso
+  else if (m.piLost) {                                                             // sin bloque PI: pantalla de receptor real
+    const r = Math.random();
+    ps = r < 0.45 ? '--------' : r < 0.78 ? corrupt('        ', 1) : '        ';
+    pi = '----'; pty = '--'; rt = '';
+  } else {
+    ps = corrupt(ps, p); pi = corrupt(pi, p * 0.8, true);
+    const line = st.rt[RX.rtIdx % st.rt.length], W = 30, pad = ' '.repeat(W) + line + ' '.repeat(6);
+    if (p < 0.3 && (RX.rtTick++ % 2 === 0)) { RX.rtPos++; if (RX.rtPos > pad.length - 4) { RX.rtPos = 0; RX.rtIdx++; } }  // el RT se congela con errores
+    rt = corrupt(pad.substr(RX.rtPos, W), Math.min(0.9, p * 1.1));
+    if (p > 0.6 && Math.random() < 0.3) pty = '--';
+  }
+  $('#lcdPS').textContent = ps; $('#lcdRT').textContent = rt; $('#lcdPI').textContent = pi; $('#lcdPTY').textContent = pty;
+  const rdsOk = !m.piLost && p < 0.5 && now >= RX.muteUntil;
+  $('#iST').classList.toggle('on', m.stereo > 0.55 && !m.piLost);
+  $('#iTP').classList.toggle('on', rdsOk);
+  $('#iTA').classList.remove('on');
+  $('#iAF').classList.toggle('on', st.towers.filter(t => t.active).length > 1 && (now >= RX.afFlash || ((now / 180) | 0) % 2 === 0));
+  $('#iRDS').classList.toggle('on', rdsOk || (!m.piLost && Math.random() > p));
+  const af = st.towers.filter(t => t.active && t !== sv).map(t => t.freq.toFixed(1)).join(' ');
+  $('#lcdAF').textContent = m.piLost ? '' : 'AF ' + (af || '—');
+}
+
+/* ============================ 8. MAPA (MapLibre) ======================== */
+let map = null, markers = [], carMarker = null;
+const DEM_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
+const mapStyle = {
+  version: 8,
+  sources: {
+    dark: { type: 'raster', tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', 'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'], tileSize: 256, maxzoom: 18, attribution: '© OpenStreetMap · © CARTO · Terrain: Mapzen/AWS' },
+    sat:  { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, maxzoom: 17, attribution: 'Esri, Maxar, Earthstar Geographics' },
+    topo: { type: 'raster', tiles: ['https://a.tile.opentopomap.org/{z}/{x}/{y}.png'], tileSize: 256, maxzoom: 17, attribution: '© OpenTopoMap (CC-BY-SA) · © OpenStreetMap' },
+    demT: { type: 'raster-dem', tiles: [DEM_TILES], tileSize: 256, maxzoom: 13, encoding: 'terrarium' },
+    demH: { type: 'raster-dem', tiles: [DEM_TILES], tileSize: 256, maxzoom: 13, encoding: 'terrarium' }
+  },
+  layers: [
+    { id: 'bg', type: 'background', paint: { 'background-color': '#05080c' } },
+    { id: 'dark', type: 'raster', source: 'dark' },
+    { id: 'sat', type: 'raster', source: 'sat', layout: { visibility: 'none' } },
+    { id: 'topo', type: 'raster', source: 'topo', layout: { visibility: 'none' } },
+    { id: 'hill', type: 'hillshade', source: 'demH', paint: { 'hillshade-exaggeration': 0.5, 'hillshade-shadow-color': '#000000', 'hillshade-highlight-color': '#9cc3d6', 'hillshade-accent-color': '#20323f' } }
+  ],
+  terrain: { source: 'demT', exaggeration: settings.exag }
+};
+const HOME = { center: [-5.3, 42.95], zoom: 7.4, pitch: 58, bearing: -12 };
+
+function initMap() {
+  mapStyle.terrain.exaggeration = settings.exag;
+  map = new maplibregl.Map({ container: 'map', style: mapStyle, ...(savedView || HOME), maxPitch: 80, attributionControl: { compact: true } });
+  map.on('moveend', persist);
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
+  map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-right');
+  map.on('load', () => {
+    [['cov3', 0.10, 0.5], ['cov2', 0.16, 0.6], ['cov1', 0.24, 0.8]].forEach(([id, op, lo]) => {
+      map.addSource(id, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      map.addLayer({ id: id + '-f', type: 'fill', source: id, paint: { 'fill-color': '#22ff88', 'fill-opacity': op } });
+      map.addLayer({ id: id + '-l', type: 'line', source: id, paint: { 'line-color': '#4dffa0', 'line-width': 0.9, 'line-opacity': lo } });
+    });
+    map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: ROUTE } } });
+    map.addLayer({ id: 'route-l', type: 'line', source: 'route', paint: { 'line-color': '#4fd8ff', 'line-width': 2, 'line-dasharray': [2, 2], 'line-opacity': 0.8 } });
+    map.addSource('link', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    map.addLayer({ id: 'link-l', type: 'line', source: 'link', paint: { 'line-color': ['get', 'c'], 'line-width': 2.5, 'line-opacity': 0.9 } });
+    applyBase(); rebuildMarkers(); initCar(); refreshCoverage();
+  });
+  map.on('click', e => { if (placing) { addTowerAt(e.lngLat.lng, e.lngLat.lat); } });
+}
+
+const towerSVG = '<svg viewBox="0 0 24 36" aria-hidden="true"><path d="M12 3 L5 33 M12 3 L19 33 M8 22 H16 M6.5 28 H17.5 M9.4 13 H14.6" stroke="var(--c)" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="12" cy="3.5" r="2.6" fill="var(--c)"/><path d="M5 1.5 Q1.5 3.5 5 5.5 M19 1.5 Q22.5 3.5 19 5.5" stroke="var(--c)" stroke-width="1.4" fill="none"/></svg>';
+function rebuildMarkers() {
+  markers.forEach(o => o.marker.remove()); markers = [];
+  stations.forEach((s, si) => s.towers.forEach(tw => {
+    const el = document.createElement('div'); el.className = 'mk';
+    el.innerHTML = `<div class="mk-in" style="--c:${s.color}">${towerSVG}<span class="mk-l">${esc(tw.name)} · ${tw.freq.toFixed(1)}</span></div>`;
+    let moved = false;
+    el.addEventListener('click', ev => { ev.stopPropagation(); if (!moved) { tune(stations.indexOf(s)); toast(`Sintonizada ${s.name}`); } moved = false; });
+    const mk = new maplibregl.Marker({ element: el, anchor: 'bottom', draggable: true }).setLngLat([tw.lng, tw.lat]).addTo(map);
+    mk.on('drag', () => { moved = true; const p = mk.getLngLat(); tw.lng = p.lng; tw.lat = p.lat; syncTowerFields(tw); markDirty(); });
+    mk.on('dragend', () => { scheduleCoverage(120); persist(); });
+    markers.push({ tw, s, el, marker: mk });
+  }));
+}
+function applyMarkerState() {
+  markers.forEach(o => {
+    o.el.classList.toggle('off', !o.tw.active);
+    o.el.classList.toggle('dim', stations[RX.tuned] !== o.s);
+    o.el.classList.toggle('serving', o.tw === RX.serving);
+  });
+}
+const carSVG = '<svg viewBox="0 0 30 30"><rect x="8" y="3" width="14" height="24" rx="6" fill="#0b1720" stroke="#4fd8ff" stroke-width="1.8"/><rect x="10" y="8" width="10" height="5" rx="1.5" fill="#4fd8ff" opacity=".85"/><rect x="10" y="19" width="10" height="4" rx="1.5" fill="#4fd8ff" opacity=".5"/><path d="M15 0 L18 4 H12 Z" fill="#35ff9a"/></svg>';
+function initCar() {
+  const el = document.createElement('div'); el.className = 'car'; el.innerHTML = `<div class="car-in" id="carIn">${carSVG}</div>`;
+  carMarker = new maplibregl.Marker({ element: el, draggable: true }).setLngLat([RX.car.lng, RX.car.lat]).addTo(map);
+  carMarker.on('dragstart', () => { setRoute(false); });
+  carMarker.on('drag', () => { const p = carMarker.getLngLat(); setCar(p.lng, p.lat); });
+  carMarker.on('dragend', () => { markDirty(); persist(); });
+}
+function setCar(lng, lat) {
+  const c = RX.car, dx = (lng - c.lng) * Math.cos(lat * D2R), dy = lat - c.lat;
+  if (Math.abs(dx) + Math.abs(dy) > 1e-5) { c.head = Math.atan2(dx, dy) / D2R; const ci = $('#carIn'); if (ci) ci.style.transform = `rotate(${c.head}deg)`; }
+  c.lng = lng; c.lat = lat; markDirty();
+}
+function updateLinkLine() {
+  let src = null; try { src = map && map.getSource('link'); } catch (e) {}
+  if (!src) return;
+  const sv = RX.serving, m = RX.m;
+  const c = m.sinr > 30 ? '#35ff9a' : m.sinr > 14 ? '#ffb340' : '#ff4d5e';
+  const lk = sv ? [sv.id, c, RX.car.lng.toFixed(5), RX.car.lat.toFixed(5), sv.lng.toFixed(5), sv.lat.toFixed(5)].join() : ''; if (lk === updateLinkLine.k) return; updateLinkLine.k = lk;
+  src.setData(sv ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: { c }, geometry: { type: 'LineString', coordinates: [[sv.lng, sv.lat], [RX.car.lng, RX.car.lat]] } }] } : { type: 'FeatureCollection', features: [] });
+}
+
+/* ---- Ruta automática ---- */
+const routeKm = [0]; for (let i = 1; i < ROUTE.length; i++) routeKm.push(routeKm[i - 1] + haversineKm(ROUTE[i-1][0], ROUTE[i-1][1], ROUTE[i][0], ROUTE[i][1]));
+const route = { on: false, s: 0, dir: 1, last: 0 };
+function setRoute(on) { if (!on) persist(); route.on = on; route.last = performance.now(); $('#btnRoute').classList.toggle('on', on); $('#btnRoute').textContent = on ? '❚❚ Pausar ruta' : '▶ Recorrer A-66 (Oviedo–León)'; }
+function routeStep(now) {
+  if (!route.on || !carMarker) return;
+  const dt = (now - route.last) / 3600000; route.last = now;
+  route.s += route.dir * (+$('#spd').value) * dt;
+  const tot = routeKm[routeKm.length - 1];
+  if (route.s > tot) { route.s = tot; route.dir = -1; } else if (route.s < 0) { route.s = 0; route.dir = 1; }
+  let i = 1; while (i < routeKm.length - 1 && routeKm[i] < route.s) i++;
+  const f = (route.s - routeKm[i - 1]) / (routeKm[i] - routeKm[i - 1]);
+  const lng = ROUTE[i-1][0] + (ROUTE[i][0] - ROUTE[i-1][0]) * f, lat = ROUTE[i-1][1] + (ROUTE[i][1] - ROUTE[i-1][1]) * f;
+  carMarker.setLngLat([lng, lat]); setCar(lng, lat);
+}
+
+/* ========================= 9. INTERFAZ Y EDITOR ========================= */
+let placing = null;
+function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove('on'), 2200); }
+
+function tune(i) {
+  if (i < 0) i = stations.length - 1; if (i >= stations.length) i = 0;
+  RX.tuned = i; RX.serving = null; RX.rtIdx = 0; RX.rtPos = 0;
+  log(`Sintonizando ${stations[i].name}…`); persist();
+  renderPresets(); renderStations();
+  if (RX.on) startSource(stations[i]);
+  if (settings.scope === 'tuned') scheduleCoverage(150);
+  markDirty();
+}
+function power() {
+  if (!RX.on) { auInit(); AU.ctx.resume(); RX.on = true; startSource(stations[RX.tuned]); log('Receptor encendido', 'g'); }
+  else { RX.on = false; stopSource(); log('Receptor apagado'); }
+  $('#btnPwr').classList.toggle('on', RX.on); $('#btnPwr').textContent = RX.on ? 'Apagar' : 'Encender';
+  $('#ledPwr').classList.toggle('on', RX.on); $('#huState').textContent = RX.on ? 'Receptor activo' : 'Receptor apagado';
+  markDirty();
+}
+function renderPresets() {
+  $('#presets').innerHTML = stations.map((s, i) => `<button class="pre ${i === RX.tuned ? 'on' : ''}" data-i="${i}" style="--c:${s.color}"><b>P${i + 1}</b><span>${esc(s.name)}</span><em id="pre-${i}">--</em></button>`).join('');
+}
+
+/* Fila de campo numérico del editor de torres */
+const numF = (k, lab, v, step, min, max) => `<label class="f">${lab}<input type="number" data-f="${k}" value="${v}" step="${step}" min="${min}" max="${max}"></label>`;
+function towerHTML(si, ti, tw) {
+  return `<div class="twc ${tw.active ? '' : 'off'}" data-si="${si}" data-ti="${ti}" data-tid="${tw.id}">
+    <div class="twc-h"><label class="sw" title="Activar/desactivar torre"><input type="checkbox" data-f="active" ${tw.active ? 'checked' : ''}><span></span></label>
+      <input type="text" class="nm" data-f="name" value="${esc(tw.name)}" aria-label="Nombre de la torre">
+      <button class="ib" data-act="locate" title="Centrar en el mapa">◎</button><button class="ib" data-act="deltw" title="Eliminar torre">✕</button></div>
+    <div class="g3">
+      ${numF('freq', 'Frec. (MHz)', tw.freq, 0.1, 87.5, 108)}${numF('erp', 'ERP (kW)', tw.erp, 0.1, 0.01, 100)}${numF('h', 'Altura (m)', tw.h, 5, 5, 400)}
+      ${numF('gain', 'Ganancia (dB)', tw.gain, 0.5, -10, 12)}${numF('lat', 'Latitud', tw.lat.toFixed(4), 0.001, 35, 45)}${numF('lng', 'Longitud', tw.lng.toFixed(4), 0.001, -10, 5)}
+    </div>
+    <div class="tw-live"><span id="live-${tw.id}">--</span><div class="bar"><i id="liveb-${tw.id}"></i></div></div>
+  </div>`;
+}
+function renderStations() {
+  const openSet = new Set($$('.stn.open').map(e => +e.dataset.si));
+  if (!renderStations.init) { openSet.add(RX.tuned); renderStations.init = true; }
+  $('#stations').innerHTML = stations.map((s, si) => `
+    <div class="stn ${si === RX.tuned ? 'sel' : ''} ${openSet.has(si) ? 'open' : ''}" data-si="${si}" style="--c:${s.color}">
+      <div class="stn-h" data-act="toggle"><span class="dot"></span><b>${esc(s.name)}</b><small>${s.towers.length} torres</small>
+        <span class="grow"></span><button class="btn sm" data-act="tune">Sintonizar</button></div>
+      <div class="stn-b">
+        <div class="g2"><label class="f">Nombre<input type="text" data-sf="name" value="${esc(s.name)}"></label>
+          <label class="f">PS (8 car.)<input type="text" data-sf="ps" maxlength="8" value="${esc(s.ps)}"></label>
+          <label class="f">PI (hex)<input type="text" data-sf="pi" maxlength="4" value="${esc(s.pi)}"></label>
+          <label class="f">PTY<input type="text" data-sf="pty" value="${esc(s.pty)}"></label></div>
+        <label class="f">URL de streaming de audio<input type="text" data-sf="url" value="${esc(s.url)}" placeholder="https://…/stream.mp3"></label>
+        ${s.towers.map((t, ti) => towerHTML(si, ti, t)).join('')}
+        <div class="row" style="margin-top:8px"><button class="btn sm grow" data-act="addtw">+ Torre en el centro del mapa</button>
+          <button class="btn sm warn" data-act="delst">Eliminar emisora</button></div>
+      </div></div>`).join('');
+}
+function syncTowerFields(tw) {
+  const c = $(`.twc[data-tid="${tw.id}"]`); if (!c) return;
+  c.querySelector('[data-f=lat]').value = tw.lat.toFixed(4); c.querySelector('[data-f=lng]').value = tw.lng.toFixed(4);
+}
+function addTowerAt(lng, lat) {
+  const s = stations[RX.tuned], base = s.towers[0] || { erp: 3, h: 40, gain: 2 };
+  const used = new Set(stations.flatMap(x => x.towers.map(t => t.freq)));
+  let f = 88.1; while (used.has(+f.toFixed(1)) && f < 107.9) f += 0.7;
+  s.towers.push(mkTower(`${s.name} · torre ${s.towers.length + 1}`, lat, lng, base.erp, base.h, base.gain, +f.toFixed(1)));
+  placing = null; document.body.classList.remove('placing'); $('#btnPlace').classList.remove('on');
+  rebuildMarkers(); renderStations(); scheduleCoverage(100); markDirty(); persist(); toast('Torre añadida');
+}
+
+/* Delegación de eventos del editor de emisoras/torres */
+$('#stations').addEventListener('input', e => {
+  const t = e.target, card = t.closest('.twc'), stn = t.closest('.stn'); if (!stn) return;
+  const s = stations[+stn.dataset.si]; persist();
+  if (t.dataset.sf) {                                       // campos de emisora
+    const k = t.dataset.sf; let v = t.value;
+    if (k === 'ps') v = v.toUpperCase().slice(0, 8);
+    if (k === 'pi') v = v.toUpperCase().replace(/[^0-9A-F]/g, '').slice(0, 4);
+    s[k] = v; if (k === 'name') { renderPresets(); $('.stn-h b', stn).textContent = v; }
+    if (k === 'url' && si_is_tuned(s) && RX.on) { clearTimeout(input_t); input_t = setTimeout(() => startSource(s), 700); }
+    return;
+  }
+  if (!card) return;
+  const tw = s.towers[+card.dataset.ti], f = t.dataset.f; if (!tw || !f) return;
+  if (f === 'active') { tw.active = t.checked; card.classList.toggle('off', !tw.active); }
+  else if (f === 'name') { tw.name = t.value; const o = markers.find(m => m.tw === tw); if (o) o.el.querySelector('.mk-l').textContent = `${tw.name} · ${tw.freq.toFixed(1)}`; }
+  else {
+    let v = parseFloat(t.value); if (!isFinite(v)) return;
+    const lim = { freq: [87.5, 108], erp: [0.01, 100], h: [5, 400], gain: [-10, 12], lat: [-85, 85], lng: [-180, 180] }[f]; v = clamp(v, lim[0], lim[1]);
+    tw[f] = v;
+    if (f === 'lat' || f === 'lng') { const o = markers.find(m => m.tw === tw); if (o) o.marker.setLngLat([tw.lng, tw.lat]); }
+    if (f === 'freq') { const o = markers.find(m => m.tw === tw); if (o) o.el.querySelector('.mk-l').textContent = `${tw.name} · ${tw.freq.toFixed(1)}`; }
+  }
+  markDirty(); scheduleCoverage();
+});
+let input_t = null; const si_is_tuned = s => stations[RX.tuned] === s;
+$('#stations').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const stn = b.closest('.stn'), si = +stn.dataset.si, s = stations[si], act = b.dataset.act;
+  if (act === 'toggle') { if (e.target.closest('button') && e.target.closest('button') !== b) return; stn.classList.toggle('open'); }
+  else if (act === 'tune') { e.stopPropagation(); tune(si); }
+  else if (act === 'locate') { const tw = s.towers[+b.closest('.twc').dataset.ti]; map.flyTo({ center: [tw.lng, tw.lat], zoom: 9.2, pitch: 60, duration: 1400 }); }
+  else if (act === 'deltw') {
+    if (s.towers.length <= 1) return toast('Cada emisora necesita al menos una torre');
+    const tw = s.towers[+b.closest('.twc').dataset.ti]; s.towers.splice(s.towers.indexOf(tw), 1);
+    if (RX.serving === tw) RX.serving = null; persist();
+    rebuildMarkers(); renderStations(); scheduleCoverage(100); markDirty();
+  }
+  else if (act === 'addtw') { const c = map.getCenter(); addTowerAt(c.lng, c.lat); }
+  else if (act === 'delst') {
+    if (stations.length <= 1) return toast('Debe existir al menos una emisora');
+    const wasT = si === RX.tuned; stations.splice(si, 1); if (si < RX.tuned) RX.tuned--; RX.tuned = clamp(RX.tuned, 0, stations.length - 1); RX.serving = null; if (wasT) { RX.rtIdx = 0; RX.rtPos = 0; if (RX.on) startSource(stations[RX.tuned]); }
+    rebuildMarkers(); renderPresets(); renderStations(); scheduleCoverage(100); markDirty(); persist();
+  }
+});
+$('#btnAddStation').onclick = () => {
+  const c = map.getCenter(), n = stations.length + 1, col = PALETTE[n % PALETTE.length];
+  stations.push({ id: uid(), name: 'NUEVA FM ' + n, ps: 'NUEVAFM' + n, pi: 'D' + (100 + n), pty: 'Varied', color: col, url: '',
+    rt: ['Emisora creada por el usuario', 'Edita nombre, PS, URL y torres'], towers: [mkTower('Torre 1', c.lat, c.lng, 3, 40, 2, +(88 + (n * 1.3) % 19).toFixed(1))] });
+  rebuildMarkers(); renderPresets(); renderStations(); markDirty(); persist(); toast('Emisora añadida');
+};
+$('#btnPlace').onclick = e => {
+  placing = placing ? null : true; document.body.classList.toggle('placing', !!placing); e.currentTarget.classList.toggle('on', !!placing);
+  if (placing) toast(`Haz clic en el mapa para colocar una torre de ${stations[RX.tuned].name}`);
+};
+
+/* Pestañas y controles del panel */
+$$('.tab').forEach(b => b.onclick = () => {
+  $$('.tab').forEach(x => x.classList.toggle('on', x === b));
+  $$('.page').forEach(p => p.classList.toggle('on', p.id === 'pg-' + b.dataset.tab));
+});
+$('#presets').addEventListener('click', e => { const b = e.target.closest('.pre'); if (b) tune(+b.dataset.i); });
+$('#btnPrev').onclick = () => tune(RX.tuned - 1);
+$('#btnNext').onclick = () => tune(RX.tuned + 1);
+$('#btnPwr').onclick = power;
+$('#btnMute').onclick = e => { RX.mute = !RX.mute; e.currentTarget.classList.toggle('on', RX.mute); };
+$('#vol').oninput = e => { RX.vol = e.target.value / 100; persist(); };
+$('#btnRoute').onclick = () => { setRoute(!route.on); };
+$('#spd').oninput = e => { $('#spdVal').textContent = e.target.value; };
+const setCovSwitch = v => { settings.coverage = v; $('#swCov').checked = v; $('#btnCov').classList.toggle('on', v); $('#btnCov').textContent = '☁ Nubes de cobertura: ' + (v ? 'ON' : 'OFF'); scheduleCoverage(30); persist(); };
+$('#btnCov').onclick = () => setCovSwitch(!settings.coverage);
+$('#swCov').onchange = e => setCovSwitch(e.target.checked);
+$('#segScope').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; settings.scope = b.dataset.v; $$('#segScope button').forEach(x => x.classList.toggle('on', x === b)); scheduleCoverage(50); persist(); });
+$('#segBase').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return; settings.base = b.dataset.v; $$('#segBase button').forEach(x => x.classList.toggle('on', x === b));
+  applyBase(); persist();
+  
+});
+$('#exag').oninput = e => { settings.exag = +e.target.value; $('#exVal').textContent = settings.exag.toFixed(1); map.setTerrain({ source: 'demT', exaggeration: settings.exag }); persist(); };
+$('#noise').oninput = e => { settings.noise = +e.target.value; $('#nzVal').textContent = settings.noise; markDirty(); scheduleCoverage(250); persist(); };
+$('#env').onchange = e => { settings.env = +e.target.value; markDirty(); scheduleCoverage(200); persist(); };
+$('#rxg').oninput = e => { settings.rxGain = +e.target.value; $('#rxVal').textContent = settings.rxGain; markDirty(); scheduleCoverage(300); persist(); };
+$('#btnTilt').onclick = () => map.easeTo({ pitch: map.getPitch() > 20 ? 0 : 58, bearing: map.getPitch() > 20 ? 0 : -12, duration: 900 });
+$('#btnHome').onclick = () => map.flyTo({ ...HOME, duration: 1400 });
+$('#dockBtn').onclick = () => { const d = $('#dock'); d.classList.toggle('min'); $('#dockBtn').textContent = d.classList.contains('min') ? 'Mostrar' : 'Ocultar'; };
+addEventListener('keydown', e => {
+  if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (e.key >= '1' && e.key <= '9' && stations[+e.key - 1]) tune(+e.key - 1);
+  if (e.key === 'ArrowRight') tune(RX.tuned + 1); if (e.key === 'ArrowLeft') tune(RX.tuned - 1);
+});
+
+/* Refresco de medidores del panel */
+const bar = (id, pct) => { const el = $(id); if (el) el.style.width = (100 - clamp(pct, 0, 1) * 100) + '%'; };
+let lastPanelPaint = 0;
+function paintUI(now) {
+  const m = RX.m, sv = RX.serving, L = RX.prof;
+  applyMarkerState(); updateLinkLine();
+  if (now - lastPanelPaint < 90) return; lastPanelPaint = now;
+  $('#mRssi').textContent = m.rssi > -190 ? m.rssi.toFixed(1) : '< -120'; $('#mUv').textContent = m.rssi > -190 ? 'dBm · ' + (m.rssi + 108.75).toFixed(0) + ' dBµV' : 'dBm';
+  $('#mSinr').textContent = sv ? m.sinr.toFixed(1) : '--'; $('#mThd').textContent = sv ? m.thd.toFixed(m.thd < 10 ? 2 : 1) : '--';
+  $('#mSep').textContent = sv ? (m.stereo * 100).toFixed(0) : '--';
+  bar('#bRssi', (m.rssi + 120) / 90); bar('#bSinr', (m.sinr + 5) / 45); bar('#bThd', 1 - Math.log10(m.thd / 0.05) / 3.2); bar('#bSep', m.stereo);
+  $('#lkTower').textContent = sv ? `${sv.name} · ${sv.freq.toFixed(1)}` : 'ninguna';
+  if (L) {
+    const dif = L.pl.diff, cls = dif < 1 ? 'los-ok' : dif < 8 ? 'los-mid' : 'los-bad';
+    const txt = L.rec.v < -0.78 ? 'LoS despejada' : dif < 8 ? 'Fresnel obstruido' : 'NLOS · sombra orográfica';
+    $('#lkDist').textContent = L.dKm.toFixed(1) + ' km'; $('#lkFs').textContent = L.pl.fs.toFixed(1) + ' dB';
+    $('#lkDiff').textContent = '+' + (L.pl.diff + L.pl.excess).toFixed(1) + ' dB'; $('#lkLos').textContent = txt; $('#lkLos').className = cls;
+  } else { ['#lkDist', '#lkFs', '#lkDiff', '#lkLos'].forEach(i => $(i).textContent = '—'); }
+  $('#lkAlt').textContent = DEM.elev(RX.car.lng, RX.car.lat).toFixed(0) + ' m';
+  $('#lkInt').textContent = RX.interf ? `${RX.interf.s.name} (${RX.interf.df < 0.05 ? 'co-canal' : 'adyacente'}) ${RX.interf.p.toFixed(0)} dBm` : 'ninguna';
+  $('#lkInt').className = RX.interf ? 'los-bad' : '';
+  // Nivel de cada emisora (mejor torre) en los presets y de cada torre en el editor
+  stations.forEach((s, i) => { const b = Math.max(...s.towers.map(t => t.rssi)); const e = $('#pre-' + i); if (e) e.textContent = b > -190 ? b.toFixed(0) + ' dBm' : '—'; });
+  if ($('#pg-st').classList.contains('on')) stations.forEach(s => s.towers.forEach(t => {
+    const a = $('#live-' + t.id), b = $('#liveb-' + t.id); if (!a) return;
+    a.textContent = t.active && t.rssi > -190 ? t.rssi.toFixed(0) + ' dBm' : '—'; if (b) b.style.width = (100 - clamp((t.rssi + 120) / 90, 0, 1) * 100) + '%';
+  }));
+}
+
+/* ------------------------- Instrumentos (canvas) ------------------------ */
+function fit(c) {
+  const r = c.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1), w = Math.max(10, Math.round(r.width)), h = Math.max(10, Math.round(r.height));
+  if (c.width !== w * d || c.height !== h * d) { c.width = w * d; c.height = h * d; }
+  const g = c.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); return { g, w, h };
+}
+const FONT = '10px JetBrains Mono, monospace';
+
+/* Perfil del terreno + línea de vista + primera zona de Fresnel + cresta dominante */
+function drawProfile() {
+  const { g, w, h } = fit($('#cvProf')); g.clearRect(0, 0, w, h); g.font = FONT;
+  const L = RX.prof; if (!L) { g.fillStyle = '#6d8595'; g.fillText('Sin enlace calculable', 12, h / 2); return; }
+  const N = L.N, Dm = L.dKm * 1000, lam = 299.79 / L.f, l = 34, r = 8, t = 8, b = 16;
+  const E = new Float32Array(N + 1); let mn = 1e9, mx = -1e9;
+  for (let i = 0; i <= N; i++) { const d1 = i * L.stepM; E[i] = L.elev[i] + d1 * (Dm - d1) / (2 * RE_EFF); mn = Math.min(mn, L.elev[i]); mx = Math.max(mx, E[i]); }
+  mx = Math.max(mx, L.htAsl + 15, L.hrAsl + 15); mn = Math.max(0, mn - 40);
+  const X = i => l + (w - l - r) * i / N, Y = v => h - b - (h - t - b) * (v - mn) / (mx - mn);
+  g.strokeStyle = 'rgba(130,190,225,.10)'; g.fillStyle = '#6d8595';
+  for (let k = 0; k <= 3; k++) { const v = mn + (mx - mn) * k / 3, y = Y(v); g.beginPath(); g.moveTo(l, y); g.lineTo(w - r, y); g.stroke(); g.fillText(v.toFixed(0), 2, y + 3); }
+  g.fillText(L.dKm.toFixed(0) + ' km', w - r - 36, h - 3); g.fillText('0', l, h - 3);
+  // terreno real
+  g.beginPath(); g.moveTo(X(0), Y(mn)); for (let i = 0; i <= N; i++) g.lineTo(X(i), Y(L.elev[i])); g.lineTo(X(N), Y(mn)); g.closePath();
+  const gr = g.createLinearGradient(0, t, 0, h); gr.addColorStop(0, 'rgba(120,160,140,.55)'); gr.addColorStop(1, 'rgba(30,50,60,.25)'); g.fillStyle = gr; g.fill();
+  // terreno + abombamiento terrestre (lo que realmente «ve» el rayo)
+  g.beginPath(); for (let i = 0; i <= N; i++) g.lineTo(X(i), Y(E[i])); g.strokeStyle = '#a4c5d6'; g.setLineDash([3, 3]); g.stroke(); g.setLineDash([]);
+  // zona de Fresnel
+  g.beginPath(); for (let i = 1; i < N; i++) { const d1 = i * L.stepM, d2 = Dm - d1, r1 = Math.sqrt(lam * d1 * d2 / Dm), los = L.htAsl + (L.hrAsl - L.htAsl) * i / N; g.lineTo(X(i), Y(los + r1)); }
+  for (let i = N - 1; i >= 1; i--) { const d1 = i * L.stepM, d2 = Dm - d1, r1 = Math.sqrt(lam * d1 * d2 / Dm), los = L.htAsl + (L.hrAsl - L.htAsl) * i / N; g.lineTo(X(i), Y(los - r1)); }
+  g.closePath(); g.fillStyle = 'rgba(79,216,255,.08)'; g.fill(); g.strokeStyle = 'rgba(79,216,255,.4)'; g.lineWidth = 1; g.stroke();
+  // línea de vista
+  const blocked = L.pl.diff >= 8, col = L.pl.diff < 1 ? '#35ff9a' : blocked ? '#ff4d5e' : '#ffb340';
+  g.beginPath(); g.moveTo(X(0), Y(L.htAsl)); g.lineTo(X(N), Y(L.hrAsl)); g.strokeStyle = col; g.lineWidth = 1.6; g.stroke(); g.lineWidth = 1;
+  // torre y coche
+  g.strokeStyle = '#e8f3fa'; g.beginPath(); g.moveTo(X(0), Y(L.elev[0])); g.lineTo(X(0), Y(L.htAsl)); g.stroke();
+  g.fillStyle = '#4fd8ff'; g.fillRect(X(N) - 3, Y(L.hrAsl) - 3, 6, 6);
+  // cresta dominante
+  if (L.rec.v > -0.78) {
+    const i = L.rec.i; g.beginPath(); g.arc(X(i), Y(E[i]), 4, 0, 7); g.strokeStyle = '#ff4d5e'; g.stroke();
+    g.fillStyle = '#ff9aa4'; g.fillText(`ν=${L.rec.v.toFixed(2)} · +${L.pl.diff.toFixed(0)} dB`, clamp(X(i) - 30, l, w - 110), Math.max(t + 8, Y(E[i]) - 8));
+  }
+  g.fillStyle = '#e8f3fa'; g.fillText('TX', X(0) + 4, Y(L.htAsl) - 4);
+}
+
+/* Analizador de espectro: potencia de cada torre activa como lóbulo de ≈200 kHz sobre el suelo de ruido */
+function drawSpectrum() {
+  const { g, w, h } = fit($('#cvSpec')); g.clearRect(0, 0, w, h); g.font = FONT;
+  const f0 = 87.5, f1 = 108, dMin = -125, dMax = -25, l = 30, b = 14, t = 6;
+  const X = f => l + (w - l - 6) * (f - f0) / (f1 - f0), Y = d => t + (h - t - b) * (1 - (d - dMin) / (dMax - dMin));
+  g.strokeStyle = 'rgba(130,190,225,.10)'; g.fillStyle = '#6d8595';
+  for (let d = -120; d <= -30; d += 30) { g.beginPath(); g.moveTo(l, Y(d)); g.lineTo(w - 6, Y(d)); g.stroke(); g.fillText(d, 2, Y(d) + 3); }
+  for (let f = 90; f <= 108; f += 6) { g.fillText(f, X(f) - 8, h - 3); g.beginPath(); g.moveTo(X(f), t); g.lineTo(X(f), h - b); g.stroke(); }
+  const towers = []; stations.forEach(s => s.towers.forEach(tw => { if (tw.active && tw.rssi > -190) towers.push({ s, tw }); }));
+  const nl = Math.pow(10, settings.noise / 10), pts = [];
+  for (let x = l; x <= w - 6; x += 2) {
+    const f = f0 + (f1 - f0) * (x - l) / (w - l - 6); let p = nl * (0.6 + Math.random() * 0.8);
+    for (const { tw } of towers) { const df = (f - tw.freq) / 0.06; p += Math.pow(10, tw.rssi / 10) * Math.exp(-df * df) * (0.95 + Math.random() * 0.1); }
+    pts.push([x, Y(clamp(10 * Math.log10(p), dMin, dMax))]);
+  }
+  g.beginPath(); g.moveTo(l, h - b); pts.forEach(p => g.lineTo(p[0], p[1])); g.lineTo(w - 6, h - b); g.closePath();
+  const gr = g.createLinearGradient(0, t, 0, h - b); gr.addColorStop(0, 'rgba(53,255,154,.45)'); gr.addColorStop(1, 'rgba(53,255,154,.03)'); g.fillStyle = gr; g.fill();
+  g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.strokeStyle = '#35ff9a'; g.stroke();
+  g.setLineDash([2, 3]); g.strokeStyle = '#ffb340'; g.beginPath(); g.moveTo(l, Y(settings.noise)); g.lineTo(w - 6, Y(settings.noise)); g.stroke(); g.setLineDash([]);
+  towers.forEach(({ s, tw }) => { g.fillStyle = s.color; g.fillRect(X(tw.freq) - 1, Y(tw.rssi) - 5, 2, 5); });
+  const sv = RX.serving; if (sv) { g.strokeStyle = '#ffffff'; g.setLineDash([3, 2]); g.beginPath(); g.moveTo(X(sv.freq), t); g.lineTo(X(sv.freq), h - b); g.stroke(); g.setLineDash([]); g.fillStyle = '#fff'; g.fillText(sv.freq.toFixed(1), clamp(X(sv.freq) + 3, l, w - 34), t + 9); }
+}
+
+/* Historial de SINR con zonas de calidad */
+function drawHist() {
+  const { g, w, h } = fit($('#cvHist')); g.clearRect(0, 0, w, h); g.font = FONT;
+  const l = 26, b = 4, t = 6, yMin = -10, yMax = 50, Y = v => t + (h - t - b) * (1 - (clamp(v, yMin, yMax) - yMin) / (yMax - yMin));
+  [[30, 'ST', '#35ff9a'], [14, 'RDS', '#ffb340'], [4, 'PI', '#ff4d5e']].forEach(([v, lab, c]) => {
+    g.strokeStyle = c; g.globalAlpha = .35; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(l, Y(v)); g.lineTo(w, Y(v)); g.stroke(); g.setLineDash([]); g.globalAlpha = 1; g.fillStyle = c; g.fillText(lab, 2, Y(v) + 3);
+  });
+  if (hist.length < 2) return;
+  const n = 600, x = i => l + (w - l) * (i + (n - hist.length)) / (n - 1);
+  for (let i = 1; i < hist.length; i++) {
+    const v = hist[i].s; g.strokeStyle = v > 30 ? '#35ff9a' : v > 14 ? '#c9e55a' : v > 4 ? '#ffb340' : '#ff4d5e';
+    g.lineWidth = 1.6; g.beginPath(); g.moveTo(x(i - 1), Y(hist[i - 1].s)); g.lineTo(x(i), Y(v)); g.stroke();
+  }
+  g.lineWidth = 1;
+}
+
+/* Bucle principal: cálculo a demanda (arrastres) o cada 100 ms; ruta; instrumentos ~20 fps; RDS ~7 Hz */
+let lastUpd = 0, lastDraw = 0, lastRds = 0;
+function loop(now) {
+  routeStep(now);
+  if ((dirty && now - lastUpd > 33) || now - lastUpd > 100) { dirty = false; lastUpd = now; update(now); }
+  if (now - lastRds > 140) { lastRds = now; rdsTick(); }
+  if (now - lastDraw > 50 && !$('#dock').classList.contains('min')) { lastDraw = now; drawProfile(); drawSpectrum(); drawHist(); }
+  requestAnimationFrame(loop);
+}
+
+/* ===================== PERSISTENCIA (localStorage) =====================
+   Guarda emisoras, torres, ajustes, volumen, posición del coche y vista del mapa,
+   y lo restaura al abrir la página. */
+const STORE_KEY = 'rflab.estado.v1';
+let savedView = null, storeTimer = null, resetting = false;
+const num = (v, a, b, d) => { v = parseFloat(v); return isFinite(v) ? clamp(v, a, b) : d; };
+
+function saveNow() {
+  if (resetting) return;
+  try {
+    let view = savedView;
+    if (map) { const c = map.getCenter(); view = { center: [c.lng, c.lat], zoom: map.getZoom(), pitch: map.getPitch(), bearing: map.getBearing() }; }
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      v: 1, tuned: RX.tuned, vol: RX.vol, car: { lng: RX.car.lng, lat: RX.car.lat }, settings, view,
+      stations: stations.map(s => ({ name: s.name, ps: s.ps, pi: s.pi, pty: s.pty, color: s.color, url: s.url, rt: s.rt,
+        towers: s.towers.map(t => ({ name: t.name, lat: t.lat, lng: t.lng, erp: t.erp, h: t.h, gain: t.gain, freq: t.freq, active: t.active })) }))
+    }));
+  } catch (e) { /* almacenamiento bloqueado o lleno */ }
+}
+function persist() { clearTimeout(storeTimer); storeTimer = setTimeout(saveNow, 500); }
+addEventListener('pagehide', saveNow);
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
+
+function loadState() {
+  let d; try { d = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) { return; }
+  if (!d || d.v !== 1 || !Array.isArray(d.stations)) return;
+  const list = d.stations.slice(0, 24).map((s, i) => {
+    if (!s || !Array.isArray(s.towers)) return null;
+    const towers = s.towers.slice(0, 40).filter(Boolean).map(t => {
+      const tw = mkTower(String(t.name || 'Torre').slice(0, 60), num(t.lat, -85, 85, 42.5), num(t.lng, -180, 180, -5.5), num(t.erp, 0.01, 100, 3), num(t.h, 5, 400, 40), num(t.gain, -10, 12, 2), num(t.freq, 87.5, 108, 98));
+      tw.active = t.active !== false; return tw;
+    });
+    if (!towers.length) return null;
+    const rt = Array.isArray(s.rt) ? s.rt.map(x => String(x).slice(0, 80)).filter(Boolean).slice(0, 8) : [];
+    return { id: uid(), name: String(s.name || 'FM').slice(0, 40), ps: String(s.ps || '').toUpperCase().slice(0, 8),
+      pi: String(s.pi || '0000').toUpperCase().replace(/[^0-9A-F]/g, '').slice(0, 4), pty: String(s.pty || 'Varied').slice(0, 30),
+      color: /^#[0-9a-f]{6}$/i.test(s.color) ? s.color : PALETTE[i % PALETTE.length],
+      url: typeof s.url === 'string' ? s.url.slice(0, 500) : '', rt: rt.length ? rt : ['Emisora creada por el usuario'], towers };
+  }).filter(Boolean);
+  if (!list.length) return;
+  stations.splice(0, stations.length, ...list);
+  const S = d.settings || {};
+  settings.noise = num(S.noise, -118, -92, settings.noise);
+  settings.env = [6, 12, 18].includes(+S.env) ? +S.env : settings.env;
+  settings.rxGain = num(S.rxGain, -8, 3, settings.rxGain);
+  settings.exag = num(S.exag, 1, 3, settings.exag);
+  settings.coverage = S.coverage !== false;
+  settings.scope = S.scope === 'all' ? 'all' : 'tuned';
+  settings.base = ['dark', 'sat', 'topo'].includes(S.base) ? S.base : 'dark';
+  RX.tuned = Math.round(num(d.tuned, 0, list.length - 1, 0));
+  RX.vol = num(d.vol, 0, 1, RX.vol);
+  if (d.car) { RX.car.lng = num(d.car.lng, -180, 180, RX.car.lng); RX.car.lat = num(d.car.lat, -85, 85, RX.car.lat); }
+  const V = d.view;
+  if (V && Array.isArray(V.center) && isFinite(V.center[0]) && isFinite(V.center[1]))
+    savedView = { center: [num(V.center[0], -180, 180, -5.3), num(V.center[1], -85, 85, 42.95)], zoom: num(V.zoom, 1, 16, HOME.zoom), pitch: num(V.pitch, 0, 80, HOME.pitch), bearing: num(V.bearing, -360, 360, HOME.bearing) };
+}
+function syncSettingsUI() {
+  $('#vol').value = Math.round(RX.vol * 100);
+  $('#noise').value = settings.noise; $('#nzVal').textContent = settings.noise;
+  $('#env').value = settings.env;
+  $('#rxg').value = settings.rxGain; $('#rxVal').textContent = settings.rxGain;
+  $('#exag').value = settings.exag; $('#exVal').textContent = settings.exag.toFixed(1);
+  $('#swCov').checked = settings.coverage; $('#btnCov').classList.toggle('on', settings.coverage);
+  $('#btnCov').textContent = '☁ Nubes de cobertura: ' + (settings.coverage ? 'ON' : 'OFF');
+  $$('#segScope button').forEach(b => b.classList.toggle('on', b.dataset.v === settings.scope));
+  $$('#segBase button').forEach(b => b.classList.toggle('on', b.dataset.v === settings.base));
+}
+function applyBase() {
+  ['dark', 'sat', 'topo'].forEach(id => map.setLayoutProperty(id, 'visibility', id === settings.base ? 'visible' : 'none'));
+  map.setPaintProperty('hill', 'hillshade-exaggeration', settings.base === 'dark' ? 0.5 : 0.25);
+}
+let resetArm = 0;
+$('#btnReset').onclick = e => {                          // doble clic de confirmación (confirm() puede estar bloqueado en iframes)
+  const b = e.currentTarget;
+  if (!resetArm) { b.textContent = '¿Seguro? Pulsa de nuevo para borrar todo'; resetArm = setTimeout(() => { resetArm = 0; b.textContent = 'Restablecer emisoras y ajustes por defecto'; }, 3500); return; }
+  resetting = true; try { localStorage.removeItem(STORE_KEY); } catch (err) {} location.reload();
+};
+loadState(); syncSettingsUI();
+
+/* ------------------------------ Arranque ------------------------------- */
+DEM.onLoad = markDirty;
+renderPresets(); renderStations(); updateLegend();
+log('RF·LAB listo. Pulsa «Encender» para activar el audio.');
+log('Arrastra el coche o recorre la A-66 para ver la sombra orográfica.');
+initMap();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TRS NET</title>
+  <link rel="icon" type="image/png" href="LOGO WEB(1).png" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6838243658328521" crossorigin="anonymous"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    html { scroll-behavior: smooth; }
+    body { font-family: "Inter", sans-serif; background: #000; color: #fff; overflow-x: hidden; }
+    :focus-visible { outline: 2px solid #fb923c; outline-offset: 3px; }
+
+    /* Fondo ambiental fijo: mismos resplandores naranja y azul */
+    .ambient { position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background:
+        radial-gradient(600px circle at 50% 100%, rgba(255,60,0,.28), transparent 70%),
+        radial-gradient(500px circle at 85% 15%, rgba(0,140,255,.18), transparent 75%),
+        radial-gradient(500px circle at 10% 45%, rgba(255,153,0,.10), transparent 75%);
+      filter: blur(60px); animation: drift 10s ease-in-out infinite alternate; }
+    @keyframes drift { to { transform: translateY(-24px); } }
+
+    .glass { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); backdrop-filter: blur(14px); }
+
+    /* Ecualizador: solo se mueve cuando suena la radio */
+    .bar { width: 6px; height: 14px; border-radius: 9px; opacity: .55; }
+    .playing .bar { animation: eq 1.2s infinite ease-in-out; }
+    .bar:nth-child(2) { animation-delay: .3s } .bar:nth-child(3) { animation-delay: .6s }
+    .bar:nth-child(4) { animation-delay: .2s } .bar:nth-child(5) { animation-delay: .5s }
+    .bar:nth-child(6) { animation-delay: .4s } .bar:nth-child(7) { animation-delay: .1s }
+    @keyframes eq { 0%,100% { height: 14px; opacity: .5 } 50% { height: 52px; opacity: 1 } }
+
+    #volume::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #fff; border-radius: 50%; }
+
+    .marquee { display: flex; width: max-content; animation: slide 30s linear infinite; }
+    @keyframes slide { to { transform: translateX(-50%); } }
+
+    details[open] summary span.chev { transform: rotate(180deg); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .ambient, .marquee, .playing .bar, .animate-bounce, .animate-ping, .animate-pulse { animation: none !important; }
+    }
+  </style>
+</head>
+
+<body class="pt-20">
+  <div class="ambient"></div>
+
+  <!-- ================= HEADER ================= -->
+  <header class="fixed top-0 inset-x-0 z-50 border-b border-white/5 bg-black/50 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
+      <a href="index.html" aria-label="TRS NET, inicio" class="group relative flex items-center">
+        <span class="absolute inset-0 bg-orange-500/25 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition"></span>
+        <img src="TRS.svg" alt="TRS NET" class="relative h-19 md:h-14 w-auto object-contain transition-transform duration-300 group-hover:scale-120" />
+      </a>
+
+      <nav class="hidden lg:flex items-center gap-10 text-sm font-semibold text-white/70">
+        <a href="index.html" class="hover:text-orange-500 transition">Inicio</a>
+        <a href="https://trsnet-esp.github.io/nexofm/" class="hover:text-orange-500 transition">NEXO FM</a>
+        <a href="lora.html" class="hover:text-orange-500 transition">LoRa</a>
+      </nav>
+
+      <div class="flex items-center gap-4">
+        <a href="login.html" class="rounded-lg bg-orange-600 hover:bg-orange-500 px-6 py-2.5 text-sm font-black tracking-wide shadow-lg shadow-orange-900/30 transition">Login</a>
+        <button id="menuBtn" class="lg:hidden text-white hover:text-orange-500 transition" aria-label="Abrir menú" aria-expanded="false">
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2.5" d="M4 8h16M4 16h16"/></svg>
+        </button>
+      </div>
+    </div>
+    <nav id="mobileMenu" class="hidden lg:hidden border-t border-white/5 px-6 py-4 flex-col gap-4 text-sm font-semibold text-white/80">
+      <a href="index.html" class="block py-2 hover:text-orange-500">Inicio</a>
+      <a href="https://trsnet-esp.github.io/nexofm/" class="block py-2 hover:text-orange-500">NEXO FM</a>
+      <a href="trsnet2.html" class="block py-2 hover:text-orange-500">TRSTV 1</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ================= HERO ================= -->
+    <section class="relative flex flex-col items-center justify-center text-center min-h-[calc(100vh-5rem)] px-6">
+      <span class="mb-6 rounded-full border border-orange-500/20 bg-orange-500/5 px-4 py-1.5 text-xs font-bold tracking-widest text-orange-400">Seguridad · Privacidad · Libertad</span>
+
+      <h1 class="text-5xl sm:text-6xl md:text-8xl font-black leading-[0.95] tracking-tighter">
+        Conectando tu mundo,<br />
+        <span class="text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500">impulsando tu futuro.</span><br />
+        <span class="text-orange-500 drop-shadow-[0_0_18px_rgba(249,115,22,.45)]">En España</span>
+      </h1>
+
+      <p class="mt-8 max-w-xl text-lg md:text-xl leading-relaxed text-gray-400">
+        Experimenta la verdadera independencia digital. Conéctate a una infraestructura diseñada para proteger tu identidad y tus datos.
+      </p>
+
+      <div class="mt-10 flex w-full max-w-md sm:max-w-none flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="conectarse.html" class="w-full sm:w-auto rounded-2xl bg-orange-500 hover:bg-orange-400 px-10 py-4 text-lg font-black text-black shadow-[0_0_28px_rgba(249,115,22,.35)] transition hover:scale-105">Conectarse</a>
+        <a href="informacion.html" class="w-full sm:w-auto rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 px-10 py-4 text-lg font-bold text-gray-200 backdrop-blur-sm transition">Más información</a>
+      </div>
+
+      <svg class="absolute bottom-8 w-6 h-6 text-white/25 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-width="2" d="M19 14l-7 7-7-7m7 7V3"/></svg>
+    </section>
+
+    <!-- ================= RADIO + TRSNET+ ================= -->
+    <section class="max-w-6xl mx-auto px-6 py-20 grid gap-8 lg:grid-cols-5">
+
+      <!-- Reproductor -->
+      <div id="player" class="glass relative overflow-hidden rounded-3xl p-8 md:p-10 lg:col-span-3">
+        <img src="TRS.svg" alt="" aria-hidden="true" class="absolute -right-10 -top-10 w-72 opacity-[.07] blur-xl" />
+        <div class="relative grid gap-8 md:grid-cols-2 md:items-center">
+          <div class="text-center">
+            <h2 class="text-4xl font-black tracking-tighter text-orange-400">NEXO FM</h2>
+            <p class="mt-1 text-xs font-bold tracking-[.2em] text-orange-500/80 animate-pulse">EN DIRECTO</p>
+
+            <div class="mt-6 mb-6 flex h-14 items-end justify-center gap-1.5" aria-hidden="true">
+              <div class="bar bg-orange-500"></div><div class="bar bg-orange-400"></div><div class="bar bg-orange-600"></div>
+              <div class="bar bg-orange-500"></div><div class="bar bg-orange-300"></div><div class="bar bg-orange-400"></div><div class="bar bg-orange-500"></div>
+            </div>
+
+            <audio id="radio" src="https://stream.zeno.fm/rub12huqwj7tv" preload="none"></audio>
+            <button id="playBtn" class="w-full rounded-2xl bg-orange-500 hover:bg-orange-400 px-8 py-4 text-lg font-black text-black shadow-lg transition hover:scale-[1.03]">▶ Escuchar</button>
+
+            <label class="mt-5 flex items-center gap-3 rounded-2xl border border-white/5 bg-white/5 px-5 py-3">
+              <span aria-hidden="true">🔊</span>
+              <span class="sr-only">Volumen</span>
+              <input id="volume" type="range" min="0" max="1" step="0.01" value="1" class="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-gray-700 accent-orange-500" />
+            </label>
+            <p id="radioMsg" class="mt-3 hidden text-sm text-red-400" role="status">No se pudo conectar con la emisora. Inténtalo de nuevo.</p>
+          </div>
+
+          <div>
+            <h2 class="text-4xl md:text-5xl font-black leading-none tracking-tighter">La radio que <span class="text-orange-400">mueve tu mundo.</span></h2>
+            <p class="mt-5 leading-relaxed text-gray-400"><strong class="text-white">NEXO FM</strong> reúne la mejor selección musical y programas en vivo con una calidad de sonido excepcional.</p>
+            <ul class="mt-6 space-y-3 text-sm font-medium text-gray-300">
+              <li class="flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-full bg-orange-500/10 text-orange-500">✦</span>Sonido premium HD</li>
+              <li class="flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-full bg-orange-500/10 text-orange-500">✦</span>Sin cortes ni interrupciones</li>
+              <li class="flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-full bg-orange-500/10 text-orange-500">✦</span>En la 88.0 y 107.6 FM en España</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRSNET+ -->
+      <div class="glass rounded-3xl p-8 md:p-10 lg:col-span-2 flex flex-col items-center text-center">
+        <img src="LOGO WEB(2).png" alt="TRSNET+" class="h-24 w-24 rounded-2xl shadow-[0_0_28px_rgba(59,130,246,.85)]" />
+        <h3 class="mt-6 text-2xl font-extrabold">TRSNET+</h3>
+        <p class="mt-2 text-sm text-gray-400">Plataforma de vídeo para disfrutar tus contenidos favoritos.</p>
+        <h2 class="mt-8 text-3xl font-extrabold leading-tight">Lleva tu entretenimiento al <span class="text-blue-500">siguiente nivel.</span></h2>
+        <ul class="mt-6 space-y-2 text-left text-gray-400">
+          <li class="flex gap-2"><span class="text-blue-500">✔</span>Streaming en alta definición</li>
+          <li class="flex gap-2"><span class="text-blue-500">✔</span>Interfaz moderna y minimalista</li>
+          <li class="flex gap-2"><span class="text-blue-500">✔</span>Acceso multidispositivo</li>
+        </ul>
+        <span class="mt-8 rounded-full bg-blue-500 px-6 py-3 text-sm font-bold text-black">Próximamente</span>
+      </div>
+    </section>
+
+    <!-- ================= EMISORAS ================= -->
+    <section class="max-w-6xl mx-auto px-6 py-16">
+      <div class="mb-12 text-center">
+        <h2 class="text-3xl md:text-5xl font-black tracking-tighter">Nuestras <span class="text-orange-500">emisoras</span></h2>
+        <p class="mx-auto mt-4 max-w-2xl text-gray-400">Sintoniza la mejor variedad de contenido a través de nuestras estaciones oficiales, con sonido premium en cada señal.</p>
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-8">
+        <article class="group rounded-3xl border border-white/10 bg-white/5 p-5 md:p-6 transition duration-300 hover:-translate-y-2 hover:border-orange-500/30 hover:bg-orange-500/10">
+          <div class="grid aspect-square place-items-center overflow-hidden rounded-2xl bg-black/40"><img src="NEXO FM.svg" alt="NEXO FM" class="h-2/3 w-2/3 object-contain transition group-hover:scale-110" /></div>
+          <h3 class="mt-5 text-center text-lg font-bold">NEXO FM</h3>
+          <p class="mt-1 text-center text-xs font-bold text-orange-500">Éxitos Variados</p>
+        </article>
+        <article class="group rounded-3xl border border-white/10 bg-white/5 p-5 md:p-6 transition duration-300 hover:-translate-y-2 hover:border-orange-500/30 hover:bg-orange-500/10">
+          <div class="grid aspect-square place-items-center overflow-hidden rounded-2xl bg-black/40"><img src="TRS1 FM.svg" alt="TRS1 FM" class="h-2/3 w-2/3 object-contain transition group-hover:scale-110" /></div>
+          <h3 class="mt-5 text-center text-lg font-bold">TRS1 </h3>
+          <p class="mt-1 text-center text-xs font-bold text-orange-500">Popular</p>
+        </article>
+        <article class="group rounded-3xl border border-white/10 bg-white/5 p-5 md:p-6 transition duration-300 hover:-translate-y-2 hover:border-orange-500/30 hover:bg-orange-500/10">
+          <div class="grid aspect-square place-items-center overflow-hidden rounded-2xl bg-black/40"><img src="https://icones.pro/wp-content/uploads/2021/05/icone-question-orange.png" alt=" " class="h-2/3 w-2/3 object-contain transition group-hover:scale-110" /></div>
+          <h3 class="mt-5 text-center text-lg font-bold">PROXIMAMENTE</h3>
+          <p class="mt-1 text-center text-xs font-bold text-orange-500">Techno</p>
+        </article>
+        <article class="group rounded-3xl border border-white/10 bg-white/5 p-5 md:p-6 transition duration-300 hover:-translate-y-2 hover:border-orange-500/30 hover:bg-orange-500/10">
+          <div class="grid aspect-square place-items-center overflow-hidden rounded-2xl bg-black/40"><img src="https://icones.pro/wp-content/uploads/2021/05/icone-question-orange.png" alt=" " class="h-2/3 w-2/3 object-contain transition group-hover:scale-110" /></div>
+          <h3 class="mt-5 text-center text-lg font-bold">PROXIMAMENTE</h3>
+          <p class="mt-1 text-center text-xs font-bold text-orange-500">Urbano</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ================= PLATAFORMAS ================= -->
+    <section class="max-w-4xl mx-auto px-6 py-10">
+      <div class="glass flex flex-col md:flex-row items-center justify-between gap-6 rounded-[2rem] px-8 py-5">
+        <div class="flex items-center gap-3">
+          <span class="relative flex h-3 w-3"><span class="absolute h-full w-full animate-ping rounded-full bg-blue-400 opacity-75"></span><span class="relative h-3 w-3 rounded-full bg-blue-500"></span></span>
+          <h4 class="text-sm md:text-base font-bold">TRSNET+ próximamente en:</h4>
+        </div>
+        <div class="flex items-center gap-8 md:gap-10">
+          <div class="group flex items-center gap-2.5"><img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Windows_logo_-_2021.svg" alt="" class="h-6 w-6 grayscale transition group-hover:grayscale-0" /><span class="text-sm font-bold text-gray-400 transition group-hover:text-white">Windows</span></div>
+          <div class="group flex items-center gap-2.5"><img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" alt="" class="h-6 w-6 invert" /><span class="text-sm font-bold text-gray-400 transition group-hover:text-white">macOS</span></div>
+          <div class="group flex items-center gap-2.5"><img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="" class="h-7 w-7 transition group-hover:scale-110" /><span class="text-sm font-bold text-gray-400 transition group-hover:text-white">Linux</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= FAQ ================= -->
+    <section class="max-w-3xl mx-auto px-6 py-20">
+      <h2 class="mb-10 text-center text-3xl font-bold">Preguntas frecuentes</h2>
+      <div class="space-y-4">
+        <details class="glass overflow-hidden rounded-2xl">
+          <summary class="flex cursor-pointer list-none items-center justify-between p-6 font-semibold hover:bg-white/5">¿Cuándo estará disponible TRSNET+?<span class="chev text-orange-500 transition">▼</span></summary>
+          <p class="border-t border-white/5 p-6 text-gray-400">Estamos trabajando intensamente para lanzar la versión beta a finales de este año. Suscríbete a nuestro boletín para ser el primero en entrar.</p>
+        </details>
+        <details class="glass overflow-hidden rounded-2xl">
+          <summary class="flex cursor-pointer list-none items-center justify-between p-6 font-semibold hover:bg-white/5">¿En qué dispositivos podré verlo?<span class="chev text-orange-500 transition">▼</span></summary>
+          <p class="border-t border-white/5 p-6 text-gray-400">Será compatible con Windows, macOS y Linux. Próximamente lanzaremos aplicaciones nativas para Android e iOS.</p>
+        </details>
+        <details class="glass overflow-hidden rounded-2xl">
+          <summary class="flex cursor-pointer list-none items-center justify-between p-6 font-semibold hover:bg-white/5">¿Dónde puedo escuchar NEXO FM?<span class="chev text-orange-500 transition">▼</span></summary>
+          <p class="border-t border-white/5 p-6 text-gray-400">Aquí mismo, pulsando «Escuchar», o en el dial en la 104.7 y 88.0 FM en España.</p>
+        </details>
+      </div>
+    </section>
+
+    <!-- ================= ECOSISTEMA ================= -->
+    <section class="py-16">
+      <p class="mb-8 text-center text-xs font-bold tracking-[.3em] text-gray-500">ECOSISTEMA</p>
+      <div class="overflow-hidden border-y border-white/5 bg-white/[.02] py-10">
+        <div class="marquee items-center gap-20 pr-20" aria-hidden="true">
+          <!-- Bloque 1 -->
+          <img src="TRS.svg" alt="" class="h-14 w-auto" />
+          <div class="flex items-center gap-3 opacity-80"><img src="NEXO FM.svg" alt="" class="h-12 w-12 rounded-xl shadow-lg shadow-blue-500/20" /><span class="text-2xl font-black tracking-tighter">NEXO FM</span></div>
+          <div class="flex items-center gap-3 opacity-80"><span class="grid h-12 w-12 place-items-center rounded-xl bg-orange-500 text-xl font-black text-black">R</span><span class="text-2xl font-black tracking-tighter">TRSRADIO</span></div>
+          <span class="whitespace-nowrap text-3xl font-black italic text-gray-600">TRSLoRa</span>
+          <span class="whitespace-nowrap text-3xl font-black italic text-gray-600">TRS1 FM</span>
+          <!-- Bloque 2 (copia para el bucle continuo) -->
+          <img src="TRS.svg" alt="" class="h-14 w-auto" />
+          <div class="flex items-center gap-3 opacity-80"><img src="LOGO WEB(2).png" alt="" class="h-12 w-12 rounded-xl shadow-lg shadow-blue-500/20" /><span class="text-2xl font-black tracking-tighter">TRSNET+</span></div>
+          <div class="flex items-center gap-3 opacity-80"><span class="grid h-12 w-12 place-items-center rounded-xl bg-orange-500 text-xl font-black text-black">R</span><span class="text-2xl font-black tracking-tighter">TRSRADIO</span></div>
+          <span class="whitespace-nowrap text-3xl font-black italic text-gray-600">TRSLoRa</span>
+          <span class="whitespace-nowrap text-3xl font-black italic text-gray-600">TRS1 FM</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TRAYECTORIA ================= -->
+    <section class="relative overflow-hidden px-6 py-32 text-center">
+      <div class="absolute left-1/2 top-1/2 h-[300px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-500/10 blur-[120px]"></div>
+      <div class="relative">
+        <p class="mb-4 text-xs font-bold tracking-[.3em] text-orange-500">NUESTRA TRAYECTORIA</p>
+        <h2 class="mb-8 text-5xl md:text-7xl font-black tracking-tighter">
+          Liderando el streaming<br />
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-600">desde el 2021</span>
+        </h2>
+        <p class="mx-auto mb-12 max-w-2xl text-lg md:text-xl leading-relaxed text-gray-400">Más de 6 años innovando en la distribución de contenido digital y creando experiencias únicas para nuestra comunidad.</p>
+
+        <div class="flex flex-col md:flex-row items-center justify-center gap-8">
+          <a href="informacion.html" class="rounded-2xl bg-orange-500 hover:bg-orange-400 px-12 py-5 text-xl font-black text-black shadow-[0_0_30px_rgba(249,115,22,.35)] transition hover:scale-105">Saber más →</a>
+          <div class="text-left md:border-l md:border-white/10 md:pl-8">
+            <p class="text-2xl font-bold">+2.000</p>
+            <p class="text-xs tracking-widest text-gray-500">DÍAS DE EMISIÓN</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="flex flex-col md:flex-row items-center justify-between gap-6 border-t border-neutral-800 bg-black px-6 py-10 text-sm text-gray-500">
+    <div class="flex items-center gap-4">
+      <img src="TRS.svg" alt="TRS NET" class="h-9 w-auto" />
+      <p>&copy; TRS NET. Todos los derechos reservados.</p>
+    </div>
+    <div class="flex gap-6">
+      <a href="#" class="hover:text-white">Privacidad</a>
+      <a href="#" class="hover:text-white">Términos</a>
+      <a href="#" class="hover:text-white">Estado</a>
+    </div>
+  </footer>
+
+  <script>
+    // Menú móvil
+    const menuBtn = document.getElementById("menuBtn");
+    const mobileMenu = document.getElementById("mobileMenu");
+    menuBtn.addEventListener("click", () => {
+      const open = mobileMenu.classList.toggle("hidden") === false;
+      mobileMenu.classList.toggle("flex", open);
+      menuBtn.setAttribute("aria-expanded", open);
+    });
+
+    // Radio
+    const radio = document.getElementById("radio");
+    const btn = document.getElementById("playBtn");
+    const volume = document.getElementById("volume");
+    const player = document.getElementById("player");
+    const msg = document.getElementById("radioMsg");
+
+    btn.addEventListener("click", async () => {
+      msg.classList.add("hidden");
+      if (radio.paused) {
+        try { await radio.play(); } catch (e) { msg.classList.remove("hidden"); }
+      } else {
+        radio.pause();
+      }
+    });
+    radio.addEventListener("play", () => { btn.textContent = "⏸ Pausar"; player.classList.add("playing"); });
+    radio.addEventListener("pause", () => { btn.textContent = "▶ Escuchar"; player.classList.remove("playing"); });
+    radio.addEventListener("error", () => msg.classList.remove("hidden"));
+    volume.addEventListener("input", () => { radio.volume = volume.value; });
+  </script>
+</body>
+</html>
+
+

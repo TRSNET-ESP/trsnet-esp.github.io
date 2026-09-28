@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enlace FM · 104.7 MHz — Simulador de propagación</title>
+<style>
+  :root{
+    --bg:#0a0f14; --bg-panel:#101820; --bg-panel-alt:#141e28; --bg-input:#0c1319;
+    --border:#22323f; --border-soft:#182430;
+    --text:#dfe9f0; --text-dim:#7d93a3; --text-faint:#4d616f;
+    --accent:#49e0c4; --accent-dim:#245f54;
+    --warn:#ffb454; --warn-dim:#5c4622;
+    --danger:#ff5c6a; --danger-dim:#5c2530;
+    --shadow-c:#d06fd0; --shadow-dim:#5c2b5c;
+    --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 15% -10%, rgba(73,224,196,0.06), transparent 40%),
+      radial-gradient(circle at 100% 0%, rgba(73,224,196,0.04), transparent 35%),
+      var(--bg);
+    color:var(--text); font-family:var(--sans); padding: clamp(16px, 3vw, 40px);
+  }
+  .wrap{ max-width:1180px; margin:0 auto; }
+
+  header{ display:flex; align-items:flex-end; justify-content:space-between; gap:24px; flex-wrap:wrap; padding-bottom:20px; margin-bottom:24px; border-bottom:1px solid var(--border-soft); }
+  .freq-tag{ font-family:var(--mono); font-size:13px; color:var(--accent); letter-spacing:.02em; display:flex; align-items:center; gap:8px; }
+  .freq-tag .dot{ width:7px;height:7px;border-radius:50%; background:var(--accent); box-shadow:0 0 8px 1px var(--accent); animation:pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.35} }
+  h1{ font-size:clamp(22px,3vw,30px); font-weight:600; margin:6px 0 4px; letter-spacing:-0.01em; }
+  header p{ margin:0; color:var(--text-dim); font-size:14px; max-width:60ch; }
+
+  .panel{ background:var(--bg-panel); border:1px solid var(--border); border-radius:10px; padding:20px; }
+  .panel + .panel{ margin-top:20px; }
+  .panel h2{ font-size:12px; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin:0 0 16px; display:flex; align-items:center; gap:8px; }
+  .panel h2::before{ content:""; width:3px; height:12px; background:var(--accent); border-radius:2px; display:inline-block; }
+
+  /* ---- mapa ---- */
+  .map-panel{ margin-bottom:20px; }
+  .map-toolbar{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:14px; }
+  .toolbar-cluster{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .mode-btn{ font-family:var(--mono); font-size:12px; background:var(--bg-input); border:1px solid var(--border); color:var(--text-dim); padding:8px 14px; border-radius:7px; cursor:pointer; display:flex; align-items:center; gap:7px; transition:border-color .15s, color .15s, background .15s; }
+  .mode-btn .mdot{ width:8px; height:8px; border-radius:50%; }
+  .mode-btn[data-mode="tx"] .mdot{ background:var(--accent); }
+  .mode-btn[data-mode="rx"] .mdot{ background:var(--warn); }
+  .mode-btn.active{ color:var(--text); border-color:var(--accent-dim); background:rgba(73,224,196,0.08); }
+  .view-toggle{ display:flex; border:1px solid var(--border); border-radius:7px; overflow:hidden; }
+  .view-toggle button{ font-family:var(--mono); font-size:12px; background:var(--bg-input); border:none; color:var(--text-dim); padding:8px 13px; cursor:pointer; }
+  .view-toggle button.active{ background:rgba(73,224,196,0.12); color:var(--accent); }
+  .view-toggle button + button{ border-left:1px solid var(--border); }
+  .map-scale{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-dim); }
+  .map-scale input{ width:64px; background:var(--bg-input); border:1px solid var(--border); color:var(--text); font-family:var(--mono); font-size:13px; padding:7px 8px; border-radius:6px; outline:none; }
+  .center-btn, .calc-btn{ font-family:var(--mono); font-size:12px; color:var(--text-dim); background:var(--bg-input); border:1px solid var(--border); padding:8px 12px; border-radius:7px; cursor:pointer; }
+  .center-btn:hover{ color:var(--text); border-color:var(--border); }
+  .calc-btn{ color:#04211c; background:var(--accent); border-color:var(--accent); font-weight:600; }
+  .calc-btn:disabled{ opacity:.5; cursor:default; }
+
+  .map-canvas-wrap{ position:relative; border:1px solid var(--border-soft); border-radius:8px; overflow:hidden; background:var(--bg-input); }
+  #mapCanvas{ display:block; width:100%; height:auto; cursor:crosshair; touch-action:none; }
+  #leafletMap{ height:460px; border:1px solid var(--border-soft); border-radius:8px; background:#0c1319; display:none; }
+  .leaflet-container{ font-family:var(--sans); background:#0c1319; }
+
+  .status-line{ font-family:var(--mono); font-size:11px; color:var(--text-faint); margin-top:10px; min-height:14px; }
+  .status-line.busy{ color:var(--accent); }
+  .status-line.err{ color:var(--danger); }
+
+  .map-legend{ display:flex; gap:16px; flex-wrap:wrap; margin-top:12px; font-family:var(--mono); font-size:11px; color:var(--text-dim); }
+  .map-legend span{ display:flex; align-items:center; gap:7px; }
+  .swatch{ width:12px; height:12px; border-radius:3px; display:inline-block; }
+  .map-hint{ font-size:11px; color:var(--text-faint); margin-top:8px; }
+
+  /* ---- perfil ---- */
+  .profile-wrap{ position:relative; border:1px solid var(--border-soft); border-radius:8px; overflow:hidden; background:var(--bg-input); }
+  #profileCanvas{ display:block; width:100%; height:auto; }
+  .los-status{ display:flex; align-items:center; gap:10px; margin-top:12px; font-family:var(--mono); font-size:13px; flex-wrap:wrap; }
+  .los-pill{ padding:5px 12px; border-radius:999px; font-size:12px; border:1px solid var(--accent-dim); background:rgba(73,224,196,0.08); color:var(--accent); }
+  .los-pill.blocked{ border-color:var(--shadow-dim); background:rgba(208,111,208,0.1); color:var(--shadow-c); }
+
+  /* ---- relieve ---- */
+  .relief-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .toggle{ display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px; color:var(--text-dim); cursor:pointer; }
+  .toggle input{ accent-color:var(--accent); width:16px; height:16px; }
+  input[type=range]{ width:100%; accent-color:var(--accent); }
+  .seed-row{ display:flex; gap:8px; align-items:center; }
+  .seed-row input[type=number]{ flex:1; }
+  .small-btn{ font-family:var(--mono); font-size:11px; color:var(--text-dim); background:var(--bg-input); border:1px solid var(--border); padding:8px 10px; border-radius:6px; cursor:pointer; white-space:nowrap; }
+  .small-btn:hover{ color:var(--text); border-color:var(--border); }
+  .range-value{ font-family:var(--mono); font-size:12px; color:var(--accent); }
+
+  /* ---- grid de controles ---- */
+  .grid{ display:grid; grid-template-columns: 340px 1fr; gap:20px; }
+  @media (max-width:880px){ .grid{ grid-template-columns:1fr; } }
+
+  .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+  .field{ margin-bottom:12px; }
+  .field label{ display:block; font-size:12px; color:var(--text-dim); margin-bottom:6px; }
+  .field .unit{ color:var(--text-faint); font-weight:400; }
+  .field .hint{ font-size:11px; color:var(--text-faint); margin-top:5px; }
+  input[type=number]{ width:100%; background:var(--bg-input); border:1px solid var(--border); color:var(--text); font-family:var(--mono); font-size:14px; padding:9px 10px; border-radius:6px; outline:none; transition:border-color .15s, box-shadow .15s; }
+  input[type=number]:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(73,224,196,0.12); }
+  select{ width:100%; background:var(--bg-input); border:1px solid var(--border); color:var(--text); font-family:var(--mono); font-size:13px; padding:9px 10px; border-radius:6px; outline:none; }
+  select:focus{ border-color:var(--accent); }
+
+  .subhead{ font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em; margin:18px 0 10px; border-top:1px solid var(--border-soft); padding-top:14px; }
+  .subhead:first-of-type{ border-top:none; padding-top:0; margin-top:0; }
+
+  .power-readout{ display:flex; justify-content:space-between; align-items:baseline; font-family:var(--mono); font-size:12px; color:var(--text-dim); margin-top:4px; }
+  .power-readout b{ color:var(--accent); font-size:13px; }
+
+  /* ---- resultados ---- */
+  .mode-select-row{ display:grid; grid-template-columns: 1.4fr 1fr 1fr; gap:10px; margin-bottom:20px; }
+  .hero{ display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:20px; padding-bottom:22px; margin-bottom:20px; border-bottom:1px solid var(--border-soft); }
+  .hero-value .label{ font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; display:block; }
+  .hero-value .num{ font-family:var(--mono); font-size:clamp(42px,6vw,64px); font-weight:600; letter-spacing:-0.02em; line-height:1; }
+  .hero-value .num span{ font-size:0.4em; color:var(--text-dim); font-weight:400; margin-left:6px; }
+
+  .badge{ font-family:var(--mono); font-size:13px; padding:8px 14px; border-radius:999px; border:1px solid var(--accent-dim); background:rgba(73,224,196,0.08); color:var(--accent); display:flex; align-items:center; gap:8px; white-space:nowrap; }
+  .badge .bdot{ width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .badge.warn{ border-color:var(--warn-dim); background:rgba(255,180,84,0.08); color:var(--warn); }
+  .badge.danger{ border-color:var(--danger-dim); background:rgba(255,92,106,0.08); color:var(--danger); }
+  .badge.shadow{ border-color:var(--shadow-dim); background:rgba(208,111,208,0.1); color:var(--shadow-c); }
+
+  .metrics{ display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:14px; margin-bottom:22px; }
+  .metric{ background:var(--bg-panel-alt); border:1px solid var(--border-soft); border-radius:8px; padding:12px 14px; }
+  .metric .m-label{ font-size:11px; color:var(--text-dim); margin-bottom:6px; }
+  .metric .m-value{ font-family:var(--mono); font-size:19px; }
+  .metric .m-value small{ color:var(--text-dim); font-size:12px; font-weight:400; }
+
+  .balance{ font-family:var(--mono); font-size:13px; }
+  .balance-row{ display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed var(--border-soft); color:var(--text-dim); }
+  .balance-row:last-child{ border-bottom:none; }
+  .balance-row .val{ color:var(--text); }
+  .balance-row.total{ color:var(--text); font-weight:600; }
+  .balance-row.total .val{ color:var(--accent); }
+  .balance-row .val.neg{ color:var(--danger); }
+  .balance-row .val.pos{ color:var(--accent); }
+
+  footer{ margin-top:26px; padding-top:16px; border-top:1px solid var(--border-soft); font-size:11px; color:var(--text-faint); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="freq-tag"><span class="dot"></span>ENLACE FM · BANDA II</div>
+      <h1>Simulador de propagación FM — 104.7 MHz</h1>
+      <p>FSPL, Haversine y difracción por relieve (ITU‑R P.526) en tiempo real. Elige mapa sintético (funciona siempre, sin conexión) o mapa real con elevación real (necesita internet).</p>
+    </div>
+  </header>
+
+  <!-- ===================== MAPA ===================== -->
+  <div class="panel map-panel">
+    <h2>Mapa de cobertura</h2>
+    <div class="map-toolbar">
+      <div class="toolbar-cluster">
+        <div class="view-toggle">
+          <button class="active" id="btnViewSynthetic">Sintético · offline</button>
+          <button id="btnViewReal">Real (OSM) · necesita internet</button>
+        </div>
+        <button class="mode-btn active" data-mode="tx" id="btnModeTx"><span class="mdot"></span>Colocar TX</button>
+        <button class="mode-btn" data-mode="rx" id="btnModeRx"><span class="mdot"></span>Colocar RX</button>
+      </div>
+      <div class="toolbar-cluster" id="syntheticControls">
+        <div class="map-scale">
+          <span>Ancho de mapa</span>
+          <input type="number" id="mapWidthKm" value="40" min="2" max="400" step="1">
+          <span>km</span>
+        </div>
+        <button class="center-btn" id="btnCenter">Centrar</button>
+      </div>
+      <div class="toolbar-cluster" id="realControls" style="display:none;">
+        <button class="center-btn" id="btnCenterReal">Encuadrar TX/RX</button>
+        <button class="calc-btn" id="btnCalc">Cargar elevación real</button>
+      </div>
+    </div>
+
+    <div class="map-canvas-wrap" id="syntheticWrap">
+      <canvas id="mapCanvas" width="1040" height="560"></canvas>
+    </div>
+    <div id="leafletMap"></div>
+
+    <div class="status-line" id="statusLine">Mapa sintético activo · funciona sin conexión a internet.</div>
+    <div class="map-legend">
+      <span><span class="swatch" style="background:var(--accent)"></span>Excelente</span>
+      <span><span class="swatch" style="background:var(--warn)"></span>Marginal</span>
+      <span><span class="swatch" style="background:var(--shadow-c)"></span>Sombra de terreno</span>
+      <span><span class="swatch" style="background:#1a232c;border:1px solid var(--border)"></span>Fuera de cobertura</span>
+    </div>
+    <div class="map-hint" id="mapHint">Clic para colocar el marcador activo · arrastra un marcador para moverlo · todo se recalcula en tiempo real, sin llamadas de red.</div>
+  </div>
+
+  <!-- ===================== PERFIL ===================== -->
+  <div class="panel map-panel">
+    <h2>Perfil de elevación TX → RX</h2>
+    <div class="profile-wrap">
+      <canvas id="profileCanvas" width="1040" height="220"></canvas>
+    </div>
+    <div class="los-status">
+      <span class="los-pill" id="losPill">—</span>
+      <span id="losDetail" style="color:var(--text-dim);"></span>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- ===================== PANEL DE ENTRADA ===================== -->
+    <div>
+      <div class="panel">
+        <h2>Transmisor</h2>
+        <div class="subhead">Coordenadas — cima / repetidor</div>
+        <div class="field-row">
+          <div class="field"><label>Latitud</label><input type="number" id="txLat" value="40.8000" step="0.0001"></div>
+          <div class="field"><label>Longitud</label><input type="number" id="txLon" value="-4.0000" step="0.0001"></div>
+        </div>
+        <div class="field">
+          <label>Altitud del emplazamiento <span class="unit">(m s.n.m.)</span></label>
+          <input type="number" id="txAlt" value="2020" step="1">
+          <div class="hint" id="txAltHint">Editable · se actualiza si cargas elevación real</div>
+        </div>
+        <div class="field">
+          <label>Altura de antena sobre el suelo <span class="unit">(AGL, m)</span></label>
+          <input type="number" id="txAgl" value="15" step="1" min="0">
+        </div>
+
+        <div class="subhead">Potencia y antena</div>
+        <div class="field">
+          <label>Potencia de transmisor <span class="unit">(mW)</span></label>
+          <input type="number" id="txPower" value="500" step="10" min="1">
+          <div class="power-readout"><span>Equivalente</span><b id="txPowerDbm">— dBm</b></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Ganancia Tx <span class="unit">(dBi)</span></label><input type="number" id="txGain" value="2" step="0.5"></div>
+          <div class="field"><label>Pérdidas de línea <span class="unit">(dB)</span></label><input type="number" id="cableLoss" value="1" step="0.5" min="0"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Receptor</h2>
+        <div class="subhead">Coordenadas — valle</div>
+        <div class="field-row">
+          <div class="field"><label>Latitud</label><input type="number" id="rxLat" value="40.7000" step="0.0001"></div>
+          <div class="field"><label>Longitud</label><input type="number" id="rxLon" value="-3.8500" step="0.0001"></div>
+        </div>
+        <div class="field">
+          <label>Altitud del emplazamiento <span class="unit">(m s.n.m.)</span></label>
+          <input type="number" id="rxAlt" value="1100" step="1">
+          <div class="hint" id="rxAltHint">Editable · se actualiza si cargas elevación real</div>
+        </div>
+        <div class="field">
+          <label>Altura de antena sobre el suelo <span class="unit">(AGL, m)</span></label>
+          <input type="number" id="rxAgl" value="3" step="1" min="0">
+        </div>
+        <div class="subhead">Antena receptora</div>
+        <div class="field"><label>Ganancia Rx <span class="unit">(dBi)</span></label><input type="number" id="rxGain" value="0" step="0.5"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Relieve del terreno</h2>
+        <div class="relief-row">
+          <label class="toggle"><input type="checkbox" id="reliefOn" checked>Activar sombras de terreno</label>
+        </div>
+        <div class="field">
+          <label>Intensidad del relieve <span class="unit">(± m)</span> — <span class="range-value" id="reliefAmpVal">120</span></label>
+          <input type="range" id="reliefAmp" min="0" max="500" step="5" value="120">
+        </div>
+        <div class="field">
+          <label>Escala del relieve <span class="unit">(km entre crestas)</span> — <span class="range-value" id="reliefScaleVal">4.0</span></label>
+          <input type="range" id="reliefScale" min="0.5" max="20" step="0.5" value="4">
+        </div>
+        <div class="seed-row">
+          <input type="number" id="reliefSeed" value="1337" step="1">
+          <button class="small-btn" id="btnRandomSeed">Aleatorizar</button>
+        </div>
+        <div class="map-hint" id="reliefHint">Usado en modo sintético (sin conexión). Ajusta intensidad, escala y semilla para aproximar el relieve real de tu zona. En modo real, esta sección se ignora mientras haya datos de elevación reales cargados.</div>
+      </div>
+    </div>
+
+    <!-- ===================== PANEL DE RESULTADOS ===================== -->
+    <div class="panel">
+      <h2>Resultado del enlace</h2>
+
+      <div class="mode-select-row">
+        <div class="field" style="margin-bottom:0;">
+          <label>Modo de recepción</label>
+          <select id="recMode">
+            <option value="mono">Mono</option>
+            <option value="stereo">Estéreo</option>
+            <option value="rds">Estéreo + RDS</option>
+            <option value="custom">Personalizado</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Umbral excelente <span class="unit">(dBm)</span></label>
+          <input type="number" id="thrExcelente" value="-70" step="1">
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Umbral marginal <span class="unit">(dBm)</span></label>
+          <input type="number" id="thrMarginal" value="-90" step="1">
+        </div>
+      </div>
+
+      <div class="hero">
+        <div class="hero-value">
+          <span class="label">Potencia estimada en recepción</span>
+          <div class="num" id="rxPowerOut">— <span>dBm</span></div>
+        </div>
+        <div class="badge" id="viabilityBadge"><span class="bdot"></span><span id="viabilityText">—</span></div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric"><div class="m-label">Distancia (Haversine)</div><div class="m-value" id="mDistance">— <small>km</small></div></div>
+        <div class="metric"><div class="m-label">Atenuación FSPL</div><div class="m-value" id="mFspl">— <small>dB</small></div></div>
+        <div class="metric"><div class="m-label">Pérdida por difracción</div><div class="m-value" id="mDiff">0.00 <small>dB</small></div></div>
+        <div class="metric"><div class="m-label">Desnivel Tx–Rx</div><div class="m-value" id="mElev">— <small>m</small></div></div>
+      </div>
+
+      <div class="subhead" style="margin-top:0;">Balance del enlace</div>
+      <div class="balance" id="balanceTable"></div>
+    </div>
+
+  </div>
+
+  <footer>
+    <span>FSPL = 20·log₁₀(d_km) + 20·log₁₀(f_MHz) + 32.44 · difracción de filo simple (ITU‑R P.526), Tierra k=4/3</span>
+    <span>Mapa real: OpenStreetMap + elevación Open-Meteo (requiere internet) · Mapa sintético: 100% local</span>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const FREQ_MHZ = 104.7;
+  const EARTH_R_M = 6371000;
+  const K_FACTOR = 4/3;
+
+  const fieldIds = ['txLat','txLon','txAlt','txAgl','txPower','txGain','cableLoss',
+                     'rxLat','rxLon','rxAlt','rxAgl','rxGain','thrExcelente','thrMarginal'];
+
+  /* ---------- utilidades ---------- */
+  function haversineKm(lat1, lon1, lat2, lon2){
+    const R = 6371;
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+  function fmt(n, d=1){
+    if (!isFinite(n) || n===null) return '—';
+    return n.toLocaleString('es-ES', { minimumFractionDigits:d, maximumFractionDigits:d });
+  }
+  function radiusForThreshold(dbmThreshold, eirp, rxGain){
+    const exponent = (eirp + rxGain - 32.44 - 20*Math.log10(FREQ_MHZ) - dbmThreshold) / 20;
+    return Math.pow(10, exponent);
+  }
+
+  /* ---------- modo de recepción: presets de umbral ---------- */
+  const MODE_PRESETS = { mono:{exc:-70,mar:-90}, stereo:{exc:-55,mar:-70}, rds:{exc:-50,mar:-65} };
+  $('recMode').addEventListener('change', () => {
+    const v = $('recMode').value;
+    if (MODE_PRESETS[v]){ $('thrExcelente').value = MODE_PRESETS[v].exc; $('thrMarginal').value = MODE_PRESETS[v].mar; }
+    compute();
+  });
+  [$('thrExcelente'),$('thrMarginal')].forEach(el => el.addEventListener('input', () => { $('recMode').value='custom'; compute(); }));
+
+  /* ---------- proyección local (km) ---------- */
+  let ref = { lat:40.75, lon:-3.925 };
+  let kmPerDeg = { lat:111.32, lon:111.32*Math.cos(ref.lat*Math.PI/180) };
+  function layoutMap(){ kmPerDeg.lon = 111.32*Math.cos(ref.lat*Math.PI/180); }
+  function toKm(lat,lon){ return { x:(lon-ref.lon)*kmPerDeg.lon, y:(lat-ref.lat)*kmPerDeg.lat }; }
+
+  /* ---------- relieve sintético (offline) ---------- */
+  function mulberry32(seed){
+    let a = seed >>> 0;
+    return function(){
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  let noiseParams = [];
+  function rebuildNoise(){
+    const seed = parseInt($('reliefSeed').value) || 0;
+    const rnd = mulberry32(seed);
+    noiseParams = [];
+    for (let o=0; o<4; o++){
+      const angle = rnd()*Math.PI*2, f = 0.6+o*0.85;
+      noiseParams.push({ kx:Math.cos(angle)*f, ky:Math.sin(angle)*f, phase:rnd()*Math.PI*2, amp:Math.pow(0.55,o) });
+    }
+  }
+  function noise2D(xKm,yKm,scaleKm){
+    let val=0, ampSum=0; const freq=1/Math.max(scaleKm,0.1);
+    for (const p of noiseParams){ val += p.amp*Math.sin(p.kx*xKm*freq + p.ky*yKm*freq + p.phase); ampSum += p.amp; }
+    return ampSum>0 ? val/ampSum : 0;
+  }
+
+  /* ---------- terreno real (elevación real, cuando está disponible) ---------- */
+  let realTerrainGrid = null; // {elevations, latMin,latMax,lonMin,lonMax,res}
+  function getRealGroundElev(lat, lon){
+    if (!realTerrainGrid) return null;
+    const { elevations, latMin, latMax, lonMin, lonMax, res } = realTerrainGrid;
+    const clat = Math.min(Math.max(lat, latMin), latMax);
+    const clon = Math.min(Math.max(lon, lonMin), lonMax);
+    const fx = (clon-lonMin)/(lonMax-lonMin)*(res-1);
+    const fy = (clat-latMin)/(latMax-latMin)*(res-1);
+    const ix0=Math.floor(fx), iy0=Math.floor(fy), ix1=Math.min(ix0+1,res-1), iy1=Math.min(iy0+1,res-1);
+    const tx=fx-ix0, ty=fy-iy0;
+    const e00=elevations[iy0*res+ix0], e10=elevations[iy0*res+ix1];
+    const e01=elevations[iy1*res+ix0], e11=elevations[iy1*res+ix1];
+    const top=e00+(e10-e00)*tx, bot=e01+(e11-e01)*tx;
+    return top+(bot-top)*ty;
+  }
+  async function fetchElevations(points){
+    const CHUNK=90; const out=new Array(points.length);
+    for (let i=0;i<points.length;i+=CHUNK){
+      const chunk=points.slice(i,i+CHUNK);
+      const lats=chunk.map(p=>p.lat.toFixed(5)).join(',');
+      const lons=chunk.map(p=>p.lon.toFixed(5)).join(',');
+      const url=`https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lons}`;
+      const res=await fetch(url);
+      if (!res.ok) throw new Error('elevation api error');
+      const data=await res.json();
+      data.elevation.forEach((e,j)=>{ out[i+j]=e; });
+    }
+    return out;
+  }
+  function buildGridPoints(bounds, res){
+    const latMin=bounds.latMin, latMax=bounds.latMax, lonMin=bounds.lonMin, lonMax=bounds.lonMax;
+    const pts=[];
+    for (let iy=0;iy<res;iy++){
+      const lat=latMin+(latMax-latMin)*iy/(res-1);
+      for (let ix=0;ix<res;ix++){ pts.push({ lat, lon: lonMin+(lonMax-lonMin)*ix/(res-1) }); }
+    }
+    return { pts, latMin, latMax, lonMin, lonMax, res };
+  }
+
+  /* ---------- fuente de terreno unificada ---------- */
+  function groundAt(lat, lon){
+    if (mapView==='real'){
+      const real = getRealGroundElev(lat,lon);
+      if (real!==null) return real;
+    }
+    const txLat=parseFloat($('txLat').value), txLon=parseFloat($('txLon').value), txAlt=parseFloat($('txAlt').value)||0;
+    const rxLat=parseFloat($('rxLat').value), rxLon=parseFloat($('rxLon').value), rxAlt=parseFloat($('rxAlt').value)||0;
+    if (!$('reliefOn').checked){
+      const dTx0=haversineKm(txLat,txLon,lat,lon), dRx0=haversineKm(rxLat,rxLon,lat,lon);
+      const w1=1/(dTx0*dTx0+0.0001), w2=1/(dRx0*dRx0+0.0001);
+      return (txAlt*w1+rxAlt*w2)/(w1+w2);
+    }
+    const amp=parseFloat($('reliefAmp').value)||0, scaleKm=parseFloat($('reliefScale').value)||4;
+    const dTx=haversineKm(txLat,txLon,lat,lon), dRx=haversineKm(rxLat,rxLon,lat,lon);
+    const wTx=1/(dTx*dTx+0.0001), wRx=1/(dRx*dRx+0.0001);
+    const baseline=(txAlt*wTx+rxAlt*wRx)/(wTx+wRx);
+    const fade=Math.min(Math.min(dTx,dRx)/0.4,1);
+    const p=toKm(lat,lon);
+    return baseline + fade*amp*noise2D(p.x,p.y,scaleKm);
+  }
+
+  /* ---------- análisis de línea de visión / difracción (ITU-R P.526) ---------- */
+  function analyzeLink(txLat, txLon, txHeightASL, rxLat, rxLon, rxHeightASL, nSamplesOverride){
+    const dTotalKm = haversineKm(txLat, txLon, rxLat, rxLon);
+    if (dTotalKm < 0.02) return { dTotalKm, maxNu:-99, diffLoss:0, profile:[], obstructed:false };
+    const n = nSamplesOverride || Math.min(Math.max(Math.round(dTotalKm*6), 40), 200);
+    const lambda = 300/FREQ_MHZ;
+    let maxNu=-99;
+    const profile=[];
+    for (let i=0;i<=n;i++){
+      const f=i/n;
+      const lat=txLat+(rxLat-txLat)*f, lon=txLon+(rxLon-txLon)*f, dKm=dTotalKm*f;
+      const ground = (i===0) ? parseFloat($('txAlt').value)||0 : (i===n ? parseFloat($('rxAlt').value)||0 : groundAt(lat,lon));
+      const losH = txHeightASL + (rxHeightASL-txHeightASL)*f;
+      let effLOS = losH;
+      if (i>0 && i<n){
+        const d1=dKm*1000, d2=(dTotalKm-dKm)*1000;
+        const bulge=(d1*d2)/(2*K_FACTOR*EARTH_R_M);
+        effLOS = losH - bulge;
+        const obst = ground - effLOS;
+        const nu = obst*Math.sqrt(2/(lambda*(d1*d2)/(d1+d2)));
+        if (nu>maxNu) maxNu=nu;
+      }
+      profile.push({ dKm, ground, losH:effLOS });
+    }
+    const diffLoss = maxNu>-0.7 ? 6.9+20*Math.log10(Math.sqrt((maxNu-0.1)**2+1)+(maxNu-0.1)) : 0;
+    return { dTotalKm, maxNu, diffLoss:Math.max(diffLoss,0), profile, obstructed: diffLoss>0.5 };
+  }
+
+  /* ---------- cálculo principal ---------- */
+  function compute(){
+    const txLat=parseFloat($('txLat').value), txLon=parseFloat($('txLon').value);
+    const rxLat=parseFloat($('rxLat').value), rxLon=parseFloat($('rxLon').value);
+    const txAlt=parseFloat($('txAlt').value)||0, rxAlt=parseFloat($('rxAlt').value)||0;
+    const txAgl=parseFloat($('txAgl').value)||0, rxAgl=parseFloat($('rxAgl').value)||0;
+    const txPowerMw=parseFloat($('txPower').value)||0;
+    const txGain=parseFloat($('txGain').value)||0, rxGain=parseFloat($('rxGain').value)||0;
+    const cableLoss=parseFloat($('cableLoss').value)||0;
+    const thrExc=parseFloat($('thrExcelente').value), thrMar=parseFloat($('thrMarginal').value);
+
+    const txPowerDbm = 10*Math.log10(Math.max(txPowerMw,0.0001));
+    $('txPowerDbm').textContent = fmt(txPowerDbm,2)+' dBm';
+    if ([txLat,txLon,rxLat,rxLon].some(isNaN)) return;
+
+    const distKm = haversineKm(txLat,txLon,rxLat,rxLon);
+    const dEff = Math.max(distKm,0.01);
+    const fspl = 20*Math.log10(dEff) + 20*Math.log10(FREQ_MHZ) + 32.44;
+
+    const analysis = analyzeLink(txLat,txLon,txAlt+txAgl,rxLat,rxLon,rxAlt+rxAgl);
+    const diffLoss = analysis.diffLoss||0;
+    const eirp = txPowerDbm + txGain - cableLoss;
+    const rxPower = eirp + rxGain - fspl - diffLoss;
+
+    $('mDistance').innerHTML = fmt(distKm,3)+' <small>km</small>';
+    $('mFspl').innerHTML = fmt(fspl,2)+' <small>dB</small>';
+    $('mDiff').innerHTML = fmt(diffLoss,2)+' <small>dB</small>';
+    $('mElev').innerHTML = fmt(txAlt-rxAlt,0)+' <small>m</small>';
+    $('rxPowerOut').innerHTML = fmt(rxPower,2)+' <span>dBm</span>';
+
+    const balance = [
+      ['Potencia de transmisor', fmt(txPowerDbm,2)+' dBm', ''],
+      ['Ganancia de antena Tx', '+ '+fmt(txGain,1)+' dB', 'pos'],
+      ['Pérdidas de línea Tx', '− '+fmt(cableLoss,1)+' dB', 'neg'],
+      ['PIRE efectiva (EIRP)', fmt(eirp,2)+' dBm', ''],
+      ['Atenuación de espacio libre', '− '+fmt(fspl,2)+' dB', 'neg'],
+      ['Pérdida por difracción de terreno', (diffLoss>0?'− '+fmt(diffLoss,2):fmt(0,2))+' dB', diffLoss>0?'neg':''],
+      ['Ganancia de antena Rx', '+ '+fmt(rxGain,1)+' dB', 'pos'],
+    ];
+    $('balanceTable').innerHTML = balance.map(([label,val,cls]) =>
+      `<div class="balance-row"><span>${label}</span><span class="val ${cls}">${val}</span></div>`
+    ).join('') + `<div class="balance-row total"><span>Potencia en recepción</span><span class="val">${fmt(rxPower,2)} dBm</span></div>`;
+
+    const badge=$('viabilityBadge'), text=$('viabilityText');
+    badge.classList.remove('warn','danger','shadow');
+    if (rxPower>=thrExc){ text.textContent='Excelente cobertura'; }
+    else if (rxPower>=thrMar){ badge.classList.add('warn'); text.textContent='Cobertura marginal'; }
+    else if (analysis.obstructed){ badge.classList.add('shadow'); text.textContent='En sombra de terreno'; }
+    else { badge.classList.add('danger'); text.textContent='Fuera de cobertura'; }
+
+    const losPill=$('losPill'), losDetail=$('losDetail');
+    if (analysis.obstructed){
+      losPill.className='los-pill blocked'; losPill.textContent='Línea de visión obstruida';
+      losDetail.textContent = `Pérdida adicional por difracción: ${fmt(diffLoss,2)} dB · ν máx. ${fmt(analysis.maxNu,2)}`;
+    } else {
+      losPill.className='los-pill'; losPill.textContent='Línea de visión despejada';
+      losDetail.textContent = `Margen de Fresnel superado en todo el trayecto (ν máx. ${fmt(analysis.maxNu,2)})`;
+    }
+
+    drawProfileChart(analysis);
+    if (mapView==='synthetic') drawSyntheticMap();
+  }
+
+  /* ---------- gráfico de perfil ---------- */
+  const pCanvas=$('profileCanvas'), pCtx=pCanvas.getContext('2d');
+  const PW=pCanvas.width, PH=pCanvas.height;
+  function drawProfileChart(analysis){
+    pCtx.clearRect(0,0,PW,PH);
+    pCtx.fillStyle='#0c1319'; pCtx.fillRect(0,0,PW,PH);
+    if (!analysis || !analysis.profile || analysis.profile.length===0){
+      pCtx.fillStyle='#4d616f'; pCtx.font='13px ui-monospace, monospace';
+      pCtx.fillText('Perfil no disponible para esta configuración.', 20, PH/2);
+      return;
+    }
+    const profile=analysis.profile, margin={l:56,r:20,t:16,b:26};
+    const w=PW-margin.l-margin.r, h=PH-margin.t-margin.b, dTotal=analysis.dTotalKm;
+    let minE=Infinity,maxE=-Infinity;
+    profile.forEach(p=>{ minE=Math.min(minE,p.ground,p.losH); maxE=Math.max(maxE,p.ground,p.losH); });
+    const padE=Math.max((maxE-minE)*0.15,10); minE-=padE; maxE+=padE;
+    const X = km => margin.l + (km/Math.max(dTotal,0.01))*w;
+    const Y = elev => margin.t + h - ((elev-minE)/(maxE-minE))*h;
+
+    pCtx.strokeStyle='rgba(125,147,163,0.1)'; pCtx.lineWidth=1;
+    pCtx.font='10px ui-monospace, monospace'; pCtx.fillStyle='#4d616f';
+    for (let i=0;i<=4;i++){
+      const e=minE+(maxE-minE)*i/4, y=Y(e);
+      pCtx.beginPath(); pCtx.moveTo(margin.l,y); pCtx.lineTo(PW-margin.r,y); pCtx.stroke();
+      pCtx.fillText(Math.round(e)+' m', 4, y+3);
+    }
+    pCtx.beginPath(); pCtx.moveTo(X(0),margin.t+h);
+    profile.forEach(p=>pCtx.lineTo(X(p.dKm),Y(p.ground)));
+    pCtx.lineTo(X(dTotal),margin.t+h); pCtx.closePath();
+    const g=pCtx.createLinearGradient(0,margin.t,0,margin.t+h);
+    g.addColorStop(0,'rgba(125,147,163,0.35)'); g.addColorStop(1,'rgba(125,147,163,0.08)');
+    pCtx.fillStyle=g; pCtx.fill();
+    pCtx.strokeStyle='rgba(223,233,240,0.4)'; pCtx.lineWidth=1.3;
+    pCtx.beginPath(); profile.forEach((p,i)=> i===0?pCtx.moveTo(X(p.dKm),Y(p.ground)):pCtx.lineTo(X(p.dKm),Y(p.ground))); pCtx.stroke();
+
+    if (analysis.obstructed){
+      pCtx.fillStyle='rgba(208,111,208,0.28)';
+      profile.forEach(p=>{ if (p.ground>p.losH) pCtx.fillRect(X(p.dKm)-1,Y(p.ground),2,Y(p.losH)-Y(p.ground)); });
+    }
+    pCtx.strokeStyle = analysis.obstructed ? '#d06fd0' : '#49e0c4';
+    pCtx.setLineDash([6,4]); pCtx.lineWidth=1.6;
+    pCtx.beginPath(); profile.forEach((p,i)=> i===0?pCtx.moveTo(X(p.dKm),Y(p.losH)):pCtx.lineTo(X(p.dKm),Y(p.losH))); pCtx.stroke();
+    pCtx.setLineDash([]);
+
+    pCtx.fillStyle='#49e0c4'; pCtx.beginPath(); pCtx.arc(X(0),Y(profile[0].losH),4,0,Math.PI*2); pCtx.fill();
+    pCtx.fillStyle='#ffb454'; pCtx.beginPath(); pCtx.arc(X(dTotal),Y(profile[profile.length-1].losH),4,0,Math.PI*2); pCtx.fill();
+    pCtx.fillStyle='#dfe9f0'; pCtx.font='11px ui-monospace, monospace';
+    pCtx.fillText('TX', X(0)+7, Y(profile[0].losH)-6);
+    pCtx.fillText('RX', X(dTotal)-22, Y(profile[profile.length-1].losH)-6);
+    pCtx.fillStyle='#4d616f';
+    pCtx.fillText('0 km', margin.l-2, PH-8);
+    pCtx.fillText(fmt(dTotal,1)+' km', PW-margin.r-38, PH-8);
+  }
+
+  /* ================= MAPA SINTÉTICO (canvas, offline) ================= */
+  const canvas=$('mapCanvas'), ctx=canvas.getContext('2d');
+  const CW=canvas.width, CH=canvas.height;
+  let placeMode='tx', dragging=null;
+
+  function mapWidthKm(){ return Math.max(parseFloat($('mapWidthKm').value)||40, 2); }
+  function kmPerPx(){ return mapWidthKm()/CW; }
+  function latlonToPx(lat,lon){ const p=toKm(lat,lon), kpp=kmPerPx(); return { x:CW/2+p.x/kpp, y:CH/2-p.y/kpp }; }
+  function pxToLatlon(x,y){ const kpp=kmPerPx(); const xKm=(x-CW/2)*kpp, yKm=(CH/2-y)*kpp; return { lat:ref.lat+yKm/kmPerDeg.lat, lon:ref.lon+xKm/kmPerDeg.lon }; }
+  function centerSynthetic(){
+    const txLat=parseFloat($('txLat').value), txLon=parseFloat($('txLon').value);
+    const rxLat=parseFloat($('rxLat').value), rxLon=parseFloat($('rxLon').value);
+    ref = { lat:(txLat+rxLat)/2, lon:(txLon+rxLon)/2 }; layoutMap();
+    const distKm=haversineKm(txLat,txLon,rxLat,rxLon);
+    $('mapWidthKm').value = Math.round(Math.min(Math.max(distKm*1.6,4),400));
+    drawSyntheticMap();
+  }
+
+  const covBuf=document.createElement('canvas'); const BUF=110;
+  covBuf.width=BUF; covBuf.height=BUF; const covCtx=covBuf.getContext('2d');
+
+  function renderCoverageBuffer(){
+    const txLat=parseFloat($('txLat').value), txLon=parseFloat($('txLon').value);
+    const txAlt=parseFloat($('txAlt').value)||0, txAgl=parseFloat($('txAgl').value)||0, rxAgl=parseFloat($('rxAgl').value)||0;
+    const txPowerMw=parseFloat($('txPower').value)||0, txGain=parseFloat($('txGain').value)||0;
+    const rxGain=parseFloat($('rxGain').value)||0, cableLoss=parseFloat($('cableLoss').value)||0;
+    const thrExc=parseFloat($('thrExcelente').value), thrMar=parseFloat($('thrMarginal').value);
+    const txPowerDbm=10*Math.log10(Math.max(txPowerMw,0.0001));
+    const eirp=txPowerDbm+txGain-cableLoss, txHeightASL=txAlt+txAgl;
+    const rMaxKm = radiusForThreshold(thrMar-8, eirp, rxGain) * 1.1;
+    const imgData=covCtx.createImageData(BUF,BUF); const scale=CW/BUF;
+
+    for (let iy=0; iy<BUF; iy++){
+      const py=iy*scale+scale/2;
+      for (let ix=0; ix<BUF; ix++){
+        const px=ix*scale+scale/2, ll=pxToLatlon(px,py), idx=(iy*BUF+ix)*4;
+        const dKm=haversineKm(txLat,txLon,ll.lat,ll.lon);
+        if (dKm<0.02 || dKm>rMaxKm){ imgData.data[idx+3]=0; continue; }
+        const ground=groundAt(ll.lat,ll.lon), rxHeightASL=ground+rxAgl;
+        const analysis=analyzeLink(txLat,txLon,txHeightASL, ll.lat,ll.lon, rxHeightASL, 7);
+        const fspl=20*Math.log10(Math.max(dKm,0.01))+20*Math.log10(FREQ_MHZ)+32.44;
+        const rxPower=eirp+rxGain-fspl-analysis.diffLoss;
+        let r,g2,b,a;
+        if (rxPower>=thrExc){ r=73;g2=224;b=196;a=175; }
+        else if (rxPower>=thrMar){ r=255;g2=180;b=84;a=155; }
+        else if (analysis.obstructed){ r=208;g2=111;b=208;a=150; }
+        else { r=0;g2=0;b=0;a=0; }
+        imgData.data[idx]=r; imgData.data[idx+1]=g2; imgData.data[idx+2]=b; imgData.data[idx+3]=a;
+      }
+    }
+    covCtx.putImageData(imgData,0,0);
+  }
+
+  function drawGrid(){
+    ctx.fillStyle='#0c1319'; ctx.fillRect(0,0,CW,CH);
+    const kpp=kmPerPx(); const candidates=[0.5,1,2,5,10,20,50,100];
+    let step=candidates.find(c=>(c/kpp)>60) || 100;
+    ctx.strokeStyle='rgba(73,224,196,0.05)'; ctx.lineWidth=1;
+    ctx.font='10px ui-monospace, monospace'; ctx.fillStyle='#3c4e5c';
+    const s=pxToLatlon(0,0), e=pxToLatlon(CW,CH);
+    let lon0=Math.floor(s.lon/(step/kmPerDeg.lon))*(step/kmPerDeg.lon);
+    for (let lon=lon0; lon<=e.lon+step/kmPerDeg.lon; lon+=step/kmPerDeg.lon){ const p=latlonToPx(ref.lat,lon); ctx.beginPath(); ctx.moveTo(p.x,0); ctx.lineTo(p.x,CH); ctx.stroke(); }
+    let lat0=Math.floor(e.lat/(step/kmPerDeg.lat))*(step/kmPerDeg.lat);
+    for (let lat=lat0; lat<=s.lat+step/kmPerDeg.lat; lat+=step/kmPerDeg.lat){ const p=latlonToPx(lat,ref.lon); ctx.beginPath(); ctx.moveTo(0,p.y); ctx.lineTo(CW,p.y); ctx.stroke(); }
+    ctx.strokeStyle='rgba(125,147,163,0.35)';
+    ctx.beginPath(); ctx.moveTo(30,18); ctx.lineTo(30,44); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(26,26); ctx.lineTo(30,18); ctx.lineTo(34,26); ctx.stroke();
+    ctx.fillStyle='#7d93a3'; ctx.fillText('N',34,30);
+    const barKm=step, barPx=barKm/kpp, bx=CW-barPx-24, by=CH-22;
+    ctx.strokeStyle='#7d93a3'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(bx+barPx,by); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx,by-4); ctx.lineTo(bx,by+4); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx+barPx,by-4); ctx.lineTo(bx+barPx,by+4); ctx.stroke();
+    ctx.fillStyle='#7d93a3'; ctx.fillText(barKm+' km', bx, by-8);
+  }
+  function drawMarkerCanvas(lat,lon,color,label){
+    const p=latlonToPx(lat,lon);
+    ctx.beginPath(); ctx.arc(p.x,p.y,9,0,Math.PI*2); ctx.fillStyle='#0c1319'; ctx.fill();
+    ctx.lineWidth=2.5; ctx.strokeStyle=color; ctx.stroke();
+    ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fillStyle=color; ctx.fill();
+    ctx.font='600 12px ui-monospace, monospace'; ctx.fillStyle='#dfe9f0';
+    ctx.fillText(label, p.x+13, p.y-10);
+  }
+  function drawLinkCanvas(){
+    const txLat=parseFloat($('txLat').value), txLon=parseFloat($('txLon').value);
+    const rxLat=parseFloat($('rxLat').value), rxLon=parseFloat($('rxLon').value);
+    if ([txLat,txLon,rxLat,rxLon].some(isNaN)) return;
+    const p1=latlonToPx(txLat,txLon), p2=latlonToPx(rxLat,rxLon);
+    ctx.strokeStyle='rgba(223,233,240,0.55)'; ctx.setLineDash([2,4]); ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke(); ctx.setLineDash([]);
+  }
+  function drawSyntheticMap(){
+    layoutMap();
+    renderCoverageBuffer();
+    drawGrid();
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(covBuf, 0, 0, BUF, BUF, 0, 0, CW, CH);
+    drawLinkCanvas();
+    const txLat=parseFloat($('txLat').value), txLon=parseFloat($('txLon').value);
+    const rxLat=parseFloat($('rxLat').value), rxLon=parseFloat($('rxLon').value);
+    if (!isNaN(txLat)&&!isNaN(txLon)) drawMarkerCanvas(txLat,txLon,'#49e0c4','TX');
+    if (!isNaN(rxLat)&&!isNaN(rxLon)) drawMarkerCanvas(rxLat,rxLon,'#ffb454','RX');
+  }
+  function canvasCoords(evt){
+    const rect=canvas.getBoundingClientRect();
+    const cx=(evt.clientX ?? (evt.touches&&evt.touches[0].clientX)) - rect.left;
+    const cy=(evt.clientY ?? (evt.touches&&evt.touches[0].clientY)) - rect.top;
+    return { x:cx*(CW/rect.width), y:cy*(CH/rect.height) };
+  }
+  function nearestMarkerCanvas(x,y){
+    const txLat=parseFloat($('txLat').value), txLon=parseFloat($('txLon').value);
+    const rxLat=parseFloat($('rxLat').value), rxLon=parseFloat($('rxLon').value);
+    const pTx=latlonToPx(txLat,txLon), pRx=latlonToPx(rxLat,rxLon);
+    const dTx=Math.hypot(x-pTx.x,y-pTx.y), dRx=Math.hypot(x-pRx.x,y-pRx.y), TH=16;
+    if (dTx<TH && dTx<=dRx) return 'tx';
+    if (dRx<TH) return 'rx';
+    return null;
+  }
+  function setMarkerCanvas(which,x,y){
+    const ll=pxToLatlon(x,y);
+    if (which==='tx'){ $('txLat').value=ll.lat.toFixed(4); $('txLon').value=ll.lon.toFixed(4); }
+    else { $('rxLat').value=ll.lat.toFixed(4); $('rxLon').value=ll.lon.toFixed(4); }
+    syncLeafletFromFields();
+    compute();
+  }
+  canvas.addEventListener('mousedown', e=>{
+    const {x,y}=canvasCoords(e); const hit=nearestMarkerCanvas(x,y);
+    if (hit){ dragging=hit; } else { setMarkerCanvas(placeMode,x,y); dragging=placeMode; }
+  });
+  window.addEventListener('mousemove', e=>{ if(!dragging || mapView!=='synthetic') return; const {x,y}=canvasCoords(e); setMarkerCanvas(dragging,x,y); });
+  window.addEventListener('mouseup', ()=>{ dragging=null; });
+  canvas.addEventListener('touchstart', e=>{ e.preventDefault(); const {x,y}=canvasCoords(e); const hit=nearestMarkerCanvas(x,y); dragging=hit||placeMode; if(!hit) setMarkerCanvas(placeMode,x,y); }, {passive:false});
+  canvas.addEventListener('touchmove', e=>{ e.preventDefault(); if(!dragging) return; const {x,y}=canvasCoords(e); setMarkerCanvas(dragging,x,y); }, {passive:false});
+  canvas.addEventListener('touchend', ()=>{ dragging=null; });
+
+  $('btnModeTx').addEventListener('click', ()=>{ placeMode='tx'; $('btnModeTx').classList.add('active'); $('btnModeRx').classList.remove('active'); });
+  $('btnModeRx').addEventListener('click', ()=>{ placeMode='rx'; $('btnModeRx').classList.add('active'); $('btnModeTx').classList.remove('active'); });
+  $('btnCenter').addEventListener('click', centerSynthetic);
+  $('mapWidthKm').addEventListener('input', drawSyntheticMap);
+
+  $('reliefAmp').addEventListener('input', ()=>{ $('reliefAmpVal').textContent=$('reliefAmp').value; compute(); });
+  $('reliefScale').addEventListener('input', ()=>{ $('reliefScaleVal').textContent=parseFloat($('reliefScale').value).toFixed(1); compute(); });
+  $('reliefSeed').addEventListener('input', ()=>{ rebuildNoise(); compute(); });
+  $('reliefOn').addEventListener('change', compute);
+  $('btnRandomSeed').addEventListener('click', ()=>{ $('reliefSeed').value=Math.floor(Math.random()*99999); rebuildNoise(); compute(); });
+
+  /* ================= MAPA REAL (Leaflet + OSM, necesita internet) ================= */
+  let mapView='synthetic';
+  let leafletMap=null, txLMarker=null, rxLMarker=null, leafletReady=false, coverageOverlay=null;
+
+  function setStatus(msg, kind){
+    const el=$('statusLine'); el.textContent=msg; el.className='status-line'+(kind?' '+kind:'');
+  }
+
+  function loadLeafletAssets(){
+    return new Promise((resolve, reject) => {
+      if (window.L){ resolve(); return; }
+      const link=document.createElement('link');
+      link.rel='stylesheet'; link.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+      const script=document.createElement('script');
+      script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      let settled=false;
+      script.onload=()=>{ if(!settled){ settled=true; resolve(); } };
+      script.onerror=()=>{ if(!settled){ settled=true; reject(new Error('No se pudo cargar el mapa real (¿sin conexión?)')); } };
+      document.head.appendChild(script);
+      setTimeout(()=>{ if(!settled){ settled=true; reject(new Error('Tiempo de espera agotado cargando el mapa real')); } }, 7000);
+    });
+  }
+
+  function makeDivIcon(color){
+    return L.divIcon({ className:'', html:`<div style="width:20px;height:20px;border-radius:50%;background:#0c1319;border:3px solid ${color};box-shadow:0 0 10px ${color}88;"></div>`, iconSize:[20,20], iconAnchor:[10,10] });
+  }
+
+  function initLeafletMap(){
+    leafletMap = L.map('leafletMap', { zoomControl:true, scrollWheelZoom:true });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:18, attribution:'© OpenStreetMap contributors' }).addTo(leafletMap);
+    txLMarker = L.marker([parseFloat($('txLat').value), parseFloat($('txLon').value)], { draggable:true, icon:makeDivIcon('#49e0c4') }).addTo(leafletMap);
+    rxLMarker = L.marker([parseFloat($('rxLat').value), parseFloat($('rxLon').value)], { draggable:true, icon:makeDivIcon('#ffb454') }).addTo(leafletMap);
+    txLMarker.on('drag', e => { $('txLat').value=e.target.getLatLng().lat.toFixed(5); $('txLon').value=e.target.getLatLng().lng.toFixed(5); compute(); });
+    rxLMarker.on('drag', e => { $('rxLat').value=e.target.getLatLng().lat.toFixed(5); $('rxLon').value=e.target.getLatLng().lng.toFixed(5); compute(); });
+    leafletMap.on('click', e => {
+      if (placeMode==='tx'){ txLMarker.setLatLng(e.latlng); $('txLat').value=e.latlng.lat.toFixed(5); $('txLon').value=e.latlng.lng.toFixed(5); }
+      else { rxLMarker.setLatLng(e.latlng); $('rxLat').value=e.latlng.lat.toFixed(5); $('rxLon').value=e.latlng.lng.toFixed(5); }
+      compute();
+    });
+    leafletMap.fitBounds(L.latLngBounds([txLMarker.getLatLng(), rxLMarker.getLatLng()]), { padding:[50,50] });
+    leafletReady = true;
+  }
+
+  function syncLeafletFromFields(){
+    if (!leafletReady) return;
+    txLMarker.setLatLng([parseFloat($('txLat').value), parseFloat($('txLon').value)]);
+    rxLMarker.setLatLng([parseFloat($('rxLat').value), parseFloat($('rxLon').value)]);
+  }
+
+  function renderRealCoverageOverlay(bounds){
+    const N=100;
+    const covCanvas=document.createElement('canvas'); covCanvas.width=N; covCanvas.height=N;
+    const cctx=covCanvas.getContext('2d'); const imgData=cctx.createImageData(N,N);
+    const txLat=parseFloat($('txLat').value), txLon=parseFloat($('txLon').value);
+    const txAlt=parseFloat($('txAlt').value)||0, txAgl=parseFloat($('txAgl').value)||0, rxAgl=parseFloat($('rxAgl').value)||0;
+    const txPowerMw=parseFloat($('txPower').value)||0, txGain=parseFloat($('txGain').value)||0;
+    const rxGain=parseFloat($('rxGain').value)||0, cableLoss=parseFloat($('cableLoss').value)||0;
+    const thrExc=parseFloat($('thrExcelente').value), thrMar=parseFloat($('thrMarginal').value);
+    const txPowerDbm=10*Math.log10(Math.max(txPowerMw,0.0001));
+    const eirp=txPowerDbm+txGain-cableLoss, txHeightASL=txAlt+txAgl;
+    const rMaxKm = radiusForThreshold(thrMar-8, eirp, rxGain) * 1.15;
+    const north=bounds.latMax, south=bounds.latMin, east=bounds.lonMax, west=bounds.lonMin;
+
+    for (let iy=0; iy<N; iy++){
+      const lat=north-(north-south)*iy/(N-1);
+      for (let ix=0; ix<N; ix++){
+        const lon=west+(east-west)*ix/(N-1), idx=(iy*N+ix)*4;
+        const dKm=haversineKm(txLat,txLon,lat,lon);
+        if (dKm<0.02 || dKm>rMaxKm){ imgData.data[idx+3]=0; continue; }
+        const ground=groundAt(lat,lon), rxHeightASL=ground+rxAgl;
+        const analysis=analyzeLink(txLat,txLon,txHeightASL, lat,lon, rxHeightASL, 8);
+        const fspl=20*Math.log10(Math.max(dKm,0.01))+20*Math.log10(FREQ_MHZ)+32.44;
+        const rxPower=eirp+rxGain-fspl-analysis.diffLoss;
+        let r,g2,b,a;
+        if (rxPower>=thrExc){ r=73;g2=224;b=196;a=175; }
+        else if (rxPower>=thrMar){ r=255;g2=180;b=84;a=155; }
+        else if (analysis.obstructed){ r=208;g2=111;b=208;a=150; }
+        else { r=0;g2=0;b=0;a=0; }
+        imgData.data[idx]=r; imgData.data[idx+1]=g2; imgData.data[idx+2]=b; imgData.data[idx+3]=a;
+      }
+    }
+    cctx.putImageData(imgData,0,0);
+    if (coverageOverlay) leafletMap.removeLayer(coverageOverlay);
+    const llBounds = L.latLngBounds([[south,west],[north,east]]);
+    coverageOverlay = L.imageOverlay(covCanvas.toDataURL(), llBounds, { opacity:0.95, interactive:false });
+    coverageOverlay.addTo(leafletMap);
+  }
+
+  const btnCalc = $('btnCalc');
+  btnCalc.addEventListener('click', async () => {
+    btnCalc.disabled = true;
+    setStatus('Obteniendo datos de elevación real (Open-Meteo)…', 'busy');
+    try{
+      const b = leafletMap.getBounds().pad(0.25);
+      const boundsObj = { latMin:b.getSouth(), latMax:b.getNorth(), lonMin:b.getWest(), lonMax:b.getEast() };
+      const RES = 18;
+      const { pts, latMin, latMax, lonMin, lonMax, res } = buildGridPoints(boundsObj, RES);
+      const elevations = await fetchElevations(pts);
+      realTerrainGrid = { elevations, latMin, latMax, lonMin, lonMax, res };
+
+      const txLat=parseFloat($('txLat').value), txLon=parseFloat($('txLon').value);
+      const rxLat=parseFloat($('rxLat').value), rxLon=parseFloat($('rxLon').value);
+      const txGround = getRealGroundElev(txLat,txLon), rxGround = getRealGroundElev(rxLat,rxLon);
+      if (txGround!==null){ $('txAlt').value = Math.round(txGround); $('txAltHint').textContent = 'Elevación real (Open-Meteo)'; }
+      if (rxGround!==null){ $('rxAlt').value = Math.round(rxGround); $('rxAltHint').textContent = 'Elevación real (Open-Meteo)'; }
+
+      compute();
+      setStatus('Calculando cobertura y sombras sobre el terreno real…', 'busy');
+      renderRealCoverageOverlay(boundsObj);
+      setStatus('Listo · terreno real cargado ('+(RES*RES)+' puntos de elevación)');
+    } catch(err){
+      setStatus('No se pudieron obtener datos de elevación real. Comprueba tu conexión e inténtalo de nuevo.', 'err');
+    } finally {
+      btnCalc.disabled = false;
+    }
+  });
+  $('btnCenterReal').addEventListener('click', () => {
+    if (leafletReady) leafletMap.fitBounds(L.latLngBounds([txLMarker.getLatLng(), rxLMarker.getLatLng()]), { padding:[50,50] });
+  });
+
+  /* ---------- conmutador de vista de mapa ---------- */
+  $('btnViewSynthetic').addEventListener('click', () => {
+    mapView='synthetic';
+    $('btnViewSynthetic').classList.add('active'); $('btnViewReal').classList.remove('active');
+    $('syntheticWrap').style.display=''; $('leafletMap').style.display='none';
+    $('syntheticControls').style.display='flex'; $('realControls').style.display='none';
+    $('mapHint').textContent = 'Clic para colocar el marcador activo · arrastra un marcador para moverlo · todo se recalcula en tiempo real, sin llamadas de red.';
+    setStatus(realTerrainGrid ? 'Mapa sintético activo · el terreno real cargado sigue disponible para los cálculos.' : 'Mapa sintético activo · funciona sin conexión a internet.');
+    compute();
+  });
+
+  $('btnViewReal').addEventListener('click', async () => {
+    $('btnViewReal').classList.add('active'); $('btnViewSynthetic').classList.remove('active');
+    $('syntheticWrap').style.display='none'; $('leafletMap').style.display='block';
+    $('syntheticControls').style.display='none'; $('realControls').style.display='flex';
+    $('mapHint').textContent = 'Clic para colocar el marcador activo · arrastra TX/RX para moverlo · pulsa «Cargar elevación real» para descargar el terreno y calcular sombras reales.';
+    if (leafletReady){ mapView='real'; syncLeafletFromFields(); setStatus('Mapa real activo.'); compute(); return; }
+    setStatus('Cargando mapa real (OpenStreetMap)…', 'busy');
+    try{
+      await loadLeafletAssets();
+      initLeafletMap();
+      mapView='real';
+      setStatus('Mapa real cargado · pulsa «Cargar elevación real» para datos de terreno reales.');
+      compute();
+    } catch(err){
+      setStatus(err.message + ' · volviendo al mapa sintético.', 'err');
+      $('btnViewSynthetic').click();
+    }
+  });
+
+  fieldIds.forEach(id => $(id).addEventListener('input', () => { syncLeafletFromFields(); compute(); }));
+
+  /* ---------- init ---------- */
+  rebuildNoise();
+  compute();
+  centerSynthetic();
+})();
+</script>
+</body>
+</html>

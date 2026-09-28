@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TRS NET · Nodos</title>
+  <meta name="description" content="Mapa de nodos de la red TRS NET." />
+  <link rel="icon" type="image/png" href="LOGO WEB(1).png" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    html { scroll-behavior: smooth; }
+    body { font-family: "Inter", sans-serif; background: #000; color: #fff; overflow-x: hidden; }
+    :focus-visible { outline: 2px solid #fb923c; outline-offset: 3px; }
+
+    /* Fondo ambiental: mismos resplandores naranja y azul del index */
+    .ambient { position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background:
+        radial-gradient(600px circle at 50% 100%, rgba(255,60,0,.28), transparent 70%),
+        radial-gradient(500px circle at 85% 15%, rgba(0,140,255,.18), transparent 75%),
+        radial-gradient(500px circle at 10% 45%, rgba(255,153,0,.10), transparent 75%);
+      filter: blur(60px); animation: drift 10s ease-in-out infinite alternate; }
+    @keyframes drift { to { transform: translateY(-24px); } }
+
+    .glass { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); backdrop-filter: blur(14px); }
+
+    /* Brillo del mapa: el mismo efecto pulsante, ahora en naranja y azul del tema */
+    @keyframes glow {
+      0%, 100% { filter: drop-shadow(0 0 10px rgba(249,115,22,.4)) drop-shadow(0 0 22px rgba(249,115,22,.2)); }
+      50%      { filter: drop-shadow(0 0 22px rgba(249,115,22,.9)) drop-shadow(0 0 48px rgba(59,130,246,.5)); }
+    }
+    .glow { animation: glow 3s ease-in-out infinite; }
+
+    @media (prefers-reduced-motion: reduce) { .ambient, .glow, .animate-bounce { animation: none !important; } }
+  </style>
+</head>
+
+<body class="pt-20">
+  <div class="ambient"></div>
+
+  <!-- ================= HEADER ================= -->
+  <header class="fixed top-0 inset-x-0 z-50 border-b border-white/5 bg-black/50 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
+      <a href="index.html" aria-label="TRS NET, inicio" class="group relative flex items-center">
+        <span class="absolute inset-0 bg-orange-500/25 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition"></span>
+        <img src="TRS.svg" alt="TRS NET" class="relative h-12 md:h-14 w-auto object-contain transition-transform duration-300 group-hover:scale-105" />
+      </a>
+
+      <nav class="hidden lg:flex items-center gap-10 text-sm font-semibold text-white/70" aria-label="Principal">
+        <a href="index.html" class="hover:text-orange-500 transition">Inicio</a>
+        <a href="nodos.html" class="text-orange-500" aria-current="page">Nodos</a>
+        <a href="discom.html" class="hover:text-orange-500 transition">Dispositivos compatibles</a>
+        <a href="lora.html" class="hover:text-orange-500 transition">LoRa</a>
+      </nav>
+
+      <div class="flex items-center gap-4">
+        <a href="login.html" class="rounded-lg bg-orange-600 hover:bg-orange-500 px-6 py-2.5 text-sm font-black tracking-wide shadow-lg shadow-orange-900/30 transition">Login</a>
+        <button id="menuBtn" class="lg:hidden text-white hover:text-orange-500 transition" aria-label="Abrir menú" aria-expanded="false">
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2.5" d="M4 8h16M4 16h16"/></svg>
+        </button>
+      </div>
+    </div>
+    <nav id="mobileMenu" class="hidden lg:hidden border-t border-white/5 px-6 py-4 flex-col text-sm font-semibold text-white/80" aria-label="Móvil">
+      <a href="index.html" class="block py-2 hover:text-orange-500">Inicio</a>
+      <a href="nodos.html" class="block py-2 text-orange-500">Nodos</a>
+      <a href="discom.html" class="block py-2 hover:text-orange-500">Dispositivos compatibles</a>
+      <a href="lora.html" class="block py-2 hover:text-orange-500">LoRa</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ================= HERO + MAPA ================= -->
+    <section class="flex flex-col items-center text-center px-6 pt-16 pb-24">
+      <span class="mb-6 rounded-full border border-orange-500/20 bg-orange-500/5 px-4 py-1.5 text-xs font-bold tracking-widest text-orange-400">Red TRS NET</span>
+      <h1 class="text-5xl sm:text-6xl md:text-8xl font-black leading-[0.95] tracking-tighter">
+        <span class="text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500">Mapa de</span>
+        <span class="text-orange-500 drop-shadow-[0_0_18px_rgba(249,115,22,.45)]">nodos</span>
+      </h1>
+      <p class="mt-8 max-w-xl text-lg md:text-xl leading-relaxed text-gray-400">
+        Consulta los nodos que forman la red TRS NET.
+      </p>
+
+      <a href="Diseño sin título.svg" target="_blank" rel="noopener" class="glass group mt-12 block w-full max-w-4xl rounded-3xl p-6 md:p-10 transition duration-300 hover:border-orange-500/30 hover:bg-orange-500/5" aria-label="Abrir el mapa de nodos a tamaño completo">
+        <img src="Diseño sin título.svg" alt="Mapa de nodos TRS NET" class="glow mx-auto w-full max-w-[450px] transition duration-500 group-hover:scale-105" />
+        <p class="mt-6 text-xs font-bold tracking-widest text-gray-500 transition group-hover:text-orange-400">PULSA PARA VER EL MAPA COMPLETO ↗</p>
+      </a>
+    </section>
+
+    <!-- ================= CTA ================= -->
+    <section class="relative overflow-hidden px-6 py-24 text-center">
+      <div class="absolute left-1/2 top-1/2 h-[300px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-500/10 blur-[120px]"></div>
+      <div class="relative">
+        <h2 class="mb-6 text-4xl md:text-5xl font-black tracking-tighter">Únete a la <span class="text-orange-500">red</span></h2>
+        <p class="mx-auto mb-10 max-w-xl text-lg text-gray-400">Descubre cómo funciona LoRa y qué dispositivos puedes conectar.</p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a href="discom.html" class="w-full sm:w-auto rounded-2xl bg-orange-500 hover:bg-orange-400 px-10 py-4 text-lg font-black text-black shadow-[0_0_28px_rgba(249,115,22,.35)] transition hover:scale-105">Dispositivos compatibles</a>
+          <a href="lora.html" class="w-full sm:w-auto rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 px-10 py-4 text-lg font-bold text-gray-200 backdrop-blur-sm transition">Qué es LoRa</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="flex flex-col md:flex-row items-center justify-between gap-6 border-t border-neutral-800 bg-black px-6 py-10 text-sm text-gray-500">
+    <div class="flex items-center gap-4">
+      <img src="TRS.svg" alt="TRS NET" class="h-9 w-auto" />
+      <p>&copy; TRS NET. Todos los derechos reservados.</p>
+    </div>
+    <div class="flex gap-6">
+      <a href="#" class="hover:text-white">Privacidad</a>
+      <a href="#" class="hover:text-white">Términos</a>
+      <a href="#" class="hover:text-white">Estado</a>
+    </div>
+  </footer>
+
+  <script>
+    const menuBtn = document.getElementById("menuBtn");
+    const mobileMenu = document.getElementById("mobileMenu");
+    menuBtn.addEventListener("click", () => {
+      const open = mobileMenu.classList.toggle("hidden") === false;
+      mobileMenu.classList.toggle("flex", open);
+      menuBtn.setAttribute("aria-expanded", open);
+    });
+  </script>
+</body>
+</html>
