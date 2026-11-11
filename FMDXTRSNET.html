@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TRS NET - FM-DX Webserver y Proyectos</title>
+  <meta name="description" content="Descubre FM-DX.org, la comunidad global de código abierto dedicada al hardware y software para entusiastas de la radio FM y DAB+." />
+  <link rel="icon" type="image/png" href="LOGO WEB(1).png" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    html { scroll-behavior: smooth; }
+    body { font-family: "Inter", sans-serif; background: #000; color: #fff; overflow-x: hidden; }
+    :focus-visible { outline: 2px solid #fb923c; outline-offset: 3px; }
+
+    /* Fondo ambiental: mismos resplandores naranja y azul del index */
+    .ambient { position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background:
+        radial-gradient(600px circle at 50% 100%, rgba(255,60,0,.28), transparent 70%),
+        radial-gradient(500px circle at 85% 15%, rgba(0,140,255,.18), transparent 75%),
+        radial-gradient(500px circle at 10% 45%, rgba(255,153,0,.10), transparent 75%);
+      filter: blur(60px); animation: drift 10s ease-in-out infinite alternate; }
+    @keyframes drift { to { transform: translateY(-24px); } }
+
+    .glass { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); backdrop-filter: blur(14px); }
+
+    @media (prefers-reduced-motion: reduce) { .ambient, .animate-bounce { animation: none !important; } }
+  </style>
+</head>
+
+<body class="pt-20">
+  <div class="ambient"></div>
+
+  <!-- ================= HEADER ================= -->
+ <!-- ================= HEADER ================= -->
+  <header class="fixed top-0 inset-x-0 z-50 border-b border-white/5 bg-black/50 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
+      <a href="index.html" aria-label="TRS NET, inicio" class="group relative flex items-center">
+        <span class="absolute inset-0 bg-orange-500/25 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition"></span>
+        <img src="TRS.svg" alt="TRS NET" class="relative h-19 md:h-14 w-auto object-contain transition-transform duration-300 group-hover:scale-120" />
+      </a>
+
+      <nav class="hidden lg:flex items-center gap-10 text-sm font-semibold text-white/70">
+        <a href="index.html" class="hover:text-orange-500 transition">Inicio</a>
+        <a href="https://trsnet-esp.github.io/nexofm/" class="hover:text-orange-500 transition">NEXO FM</a>
+        <a href="lora.html" class="hover:text-orange-500 transition">LoRa</a>
+        <a href="FMDXTRSNET.html" class="hover:text-orange-500 transition">TRSNET FM DX</a>
+        <a href="podcast.html" class="hover:text-orange-500 transition">PODCASTS</a>
+      </nav>
+
+      <div class="flex items-center gap-4">
+        <a href="login.html" class="rounded-lg bg-orange-600 hover:bg-orange-500 px-6 py-2.5 text-sm font-black tracking-wide shadow-lg shadow-orange-900/30 transition">Login</a>
+        <button id="menuBtn" class="lg:hidden text-white hover:text-orange-500 transition" aria-label="Abrir menú" aria-expanded="false">
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2.5" d="M4 8h16M4 16h16"/></svg>
+        </button>
+      </div>
+    </div>
+    <nav id="mobileMenu" class="hidden lg:hidden border-t border-white/5 px-6 py-4 flex-col gap-4 text-sm font-semibold text-white/80">
+      <a href="index.html" class="block py-2 hover:text-orange-500">Inicio</a>
+      <a href="https://trsnet-esp.github.io/nexofm/" class="block py-2 hover:text-orange-500">NEXO FM</a>
+      <a href="FMDXTRSNET.html" class="block py-2 hover:text-orange-500">TRSNET FM DX</a>
+      <a href="trsnet2.html" class="block py-2 hover:text-orange-500">PODCASTS</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ================= HERO ================= -->
+    <section class="relative flex flex-col items-center text-center px-6 pt-16 pb-20">
+      <span class="mb-6 rounded-full border border-orange-500/20 bg-orange-500/5 px-4 py-1.5 text-xs font-bold tracking-widest text-orange-400">Hardware abierto · FM-DX.org · Streaming de Radio</span>
+      <h1 class="text-5xl sm:text-6xl md:text-8xl font-black leading-[0.95] tracking-tighter">
+        <span class="text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500">Comunidad</span>
+        <span class="text-orange-500 drop-shadow-[0_0_18px_rgba(249,115,22,.45)]">FM DX</span>
+      </h1>
+      <p class="mt-8 max-w-xl text-lg md:text-xl leading-relaxed text-gray-400">
+        Impulsando proyectos de código abierto para hacer que la escucha y el monitoreo de señales de radio distantes sean accesibles y colaborativos.
+      </p>
+
+      <div class="glass mt-12 w-full max-w-3xl rounded-3xl p-6 md:p-8">
+        <img src="https://fmdx.org/img/projects/webserver/ui.png" alt="Interfaz FM-DX Webserver" class="mx-auto w-full rounded-2xl" />
+      </div>
+    </section>
+
+    <!-- ================= QUÉ ES FMDX.ORG ================= -->
+    <section class="max-w-6xl mx-auto px-6 py-16">
+      <div class="glass grid items-center gap-10 rounded-3xl p-6 md:grid-cols-2 md:p-10">
+        <img src="https://fmdx.org/img/projects/webserver/ui.png" alt="Plataforma FMDX.org" class="w-full rounded-2xl" />
+        <div>
+          <span class="text-xs font-bold tracking-[.3em] text-orange-500">ECOSISTEMA</span>
+          <h2 class="mt-3 mb-5 text-4xl font-black leading-none tracking-tighter">¿Qué es <span class="text-orange-400">FMDX.org?</span></h2>
+          <p class="leading-relaxed text-gray-400"><strong>FMDX.org</strong> es el centro neurálgico para una comunidad global de entusiastas de la radio dedicados al desarrollo de hardware y software de código abierto orientados a la recepción de FM y DAB+.</p>
+          <p class="mt-4 leading-relaxed text-gray-400">Su enfoque principal agrupa herramientas punteras como el <strong>FM-DX Webserver</strong>, sintonizadores avanzados basados en chips TEF y mapas interactivos de transmisores para conectar a operadores de todo el mundo.</p>
+        </div>
+      </div>
+    </section>
+<section class="max-w-6xl mx-auto px-6 py-16">
+      <div class="glass grid items-center gap-10 rounded-3xl p-6 md:grid-cols-2 md:p-10">
+        <img src="FMDXmapa.png" alt="Plataforma FMDX.org" class="w-full rounded-2xl" />
+        <div>
+          <span class="text-xs font-bold tracking-[.3em] text-orange-500">TRSNET ES</span>
+          <h2 class="mt-3 mb-5 text-4xl font-black leading-none tracking-tighter">FM DX<span class="text-orange-400"> TRSNET</span></h2>
+          <p class="leading-relaxed text-gray-400"><strong>TRSNET</strong> Ofrece los varios receptores repartidos por la zona norte de la peninsula.</p>
+          <p class="mt-4 leading-relaxed text-gray-400">LOS RECEPTORES SON EN <strong>SANTANDER,REINOSA(CANTABRIA),BURGOS,VITORIA</strong> estos seran accesibles desde la plataforma FMDX.org</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= CÓMO FUNCIONA / PROYECTOS ================= -->
+    <section class="max-w-6xl mx-auto px-6 py-16">
+      <div class="mb-12 text-center">
+        <h2 class="text-3xl md:text-5xl font-black tracking-tighter">Proyectos <span class="text-orange-500">principales</span></h2>
+        <p class="mx-auto mt-4 max-w-2xl text-gray-400">Soluciones de hardware y software desarrolladas por la comunidad.</p>
+      </div>
+
+      <div class="grid gap-8 md:grid-cols-3">
+        <article class="glass group rounded-3xl p-6 text-center transition duration-300 hover:-translate-y-2 hover:border-orange-500/30 hover:bg-orange-500/10">
+          <span class="mx-auto mb-4 grid h-10 w-10 place-items-center rounded-full bg-orange-500 text-sm font-black text-black">1</span>
+          <div class="mb-5 grid aspect-video place-items-center overflow-hidden rounded-2xl bg-black/40"><img src="https://fmdx.org/img/projects/webserver/ui.png" alt="FM-DX Webserver" class="h-full w-full object-contain transition group-hover:scale-105" /></div>
+          <h3 class="mb-2 text-xl font-bold">FM-DX Webserver</h3>
+          <p class="text-sm leading-relaxed text-gray-400">Interfaz web completa para controlar sintonizadores de forma remota, visualizar espectros y compartir el audio de emisoras DX en streaming.</p>
+        </article>
+        <article class="glass group rounded-3xl p-6 text-center transition duration-300 hover:-translate-y-2 hover:border-orange-500/30 hover:bg-orange-500/10">
+          <span class="mx-auto mb-4 grid h-10 w-10 place-items-center rounded-full bg-orange-500 text-sm font-black text-black">2</span>
+          <div class="mb-5 grid aspect-video place-items-center overflow-hidden rounded-2xl bg-black/40"><img src="https://as1.ftcdn.net/v2/jpg/07/01/13/08/1000_F_701130848_aP6kqB1TNdI9ao64GzeJSJnXynR10pg0.jpg" alt="Receptores TEF" class="h-full w-full object-contain transition group-hover:scale-105" /></div>
+          <h3 class="mb-2 text-xl font-bold">Hardware TEF</h3>
+          <p class="text-sm leading-relaxed text-gray-400">Diseños de hardware de código abierto basados en sintonizadores de alta sensibilidad (como TEF668x) optimizados para la caza de señales débiles.</p>
+        </article>
+        <article class="glass group rounded-3xl p-6 text-center transition duration-300 hover:-translate-y-2 hover:border-orange-500/30 hover:bg-orange-500/10">
+          <span class="mx-auto mb-4 grid h-10 w-10 place-items-center rounded-full bg-orange-500 text-sm font-black text-black">3</span>
+          <div class="mb-5 grid aspect-video place-items-center overflow-hidden rounded-2xl bg-black/40"><img src="TRS.svg" alt="Mapas de Transmisores" class="h-2/3 w-auto object-contain transition group-hover:scale-110" /></div>
+          <h3 class="mb-2 text-xl font-bold">Mapas de Transmisores</h3>
+          <p class="text-sm leading-relaxed text-gray-400">Herramientas cartográficas interactivas enfocadas en la localización precisa de torres de radio y planificación de escuchas de largo alcance.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ================= BENEFICIOS ================= -->
+    <section class="max-w-6xl mx-auto px-6 py-16">
+      <div class="mb-12 text-center">
+        <h2 class="text-3xl md:text-5xl font-black tracking-tighter">Pilares de la <span class="text-orange-500">Comunidad</span></h2>
+      </div>
+
+      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <article class="rounded-3xl border border-white/10 bg-white/5 p-6 transition duration-300 hover:-translate-y-2 hover:border-orange-500/30 hover:bg-orange-500/10">
+          <div class="mb-4 grid h-10 w-10 place-items-center rounded-full bg-orange-500/10 text-orange-500">✦</div>
+          <h3 class="mb-2 text-lg font-bold">Código Abierto</h3>
+          <p class="text-sm leading-relaxed text-gray-400">Proyectos totalmente abiertos para que cualquier usuario pueda replicarlos y mejorarlos.</p>
+        </article>
+        <article class="rounded-3xl border border-white/10 bg-white/5 p-6 transition duration-300 hover:-translate-y-2 hover:border-orange-500/30 hover:bg-orange-500/10">
+          <div class="mb-4 grid h-10 w-10 place-items-center rounded-full bg-orange-500/10 text-orange-500">✦</div>
+          <h3 class="mb-2 text-lg font-bold">Colaboración global</h3>
+          <p class="text-sm leading-relaxed text-gray-400">Una red activa de operadores de radio conectados compartiendo experiencias y mejoras.</p>
+        </article>
+        <article class="rounded-3xl border border-white/10 bg-white/5 p-6 transition duration-300 hover:-translate-y-2 hover:border-orange-500/30 hover:bg-orange-500/10">
+          <div class="mb-4 grid h-10 w-10 place-items-center rounded-full bg-orange-500/10 text-orange-500">✦</div>
+          <h3 class="mb-2 text-lg font-bold">Innovación en streaming</h3>
+          <p class="text-sm leading-relaxed text-gray-400">Lleva el control de tu sintonizador físico directamente a una interfaz web optimizada.</p>
+        </article>
+        <article class="rounded-3xl border border-white/10 bg-white/5 p-6 transition duration-300 hover:-translate-y-2 hover:border-blue-500/40 hover:bg-blue-500/10">
+          <div class="mb-4 grid h-10 w-10 place-items-center rounded-full bg-blue-500/10 text-blue-400">✦</div>
+          <h3 class="mb-2 text-lg font-bold">Documentación</h3>
+          <p class="text-sm leading-relaxed text-gray-400">Guías detalladas para ensamblar hardware, configurar servidores y optimizar antenas.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ================= CTA ================= -->
+    <section class="relative overflow-hidden px-6 py-28 text-center">
+      <div class="absolute left-1/2 top-1/2 h-[300px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-500/10 blur-[120px]"></div>
+      <div class="relative">
+        <h2 class="mb-6 text-4xl md:text-6xl font-black tracking-tighter">Únete a la red <span class="text-orange-500">FM DX</span></h2>
+        <p class="mx-auto mb-10 max-w-xl text-lg text-gray-400">Consulta los nodos disponibles y los dispositivos compatibles para empezar.</p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a href="https://servers.fmdx.org/" class="w-full sm:w-auto rounded-2xl bg-orange-500 hover:bg-orange-400 px-10 py-4 text-lg font-black text-black shadow-[0_0_28px_rgba(249,115,22,.35)] transition hover:scale-105">Ver nodos</a>
+          <a href="https://fmdx.org/devices/" class="w-full sm:w-auto rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 px-10 py-4 text-lg font-bold text-gray-200 backdrop-blur-sm transition">Dispositivos compatibles</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="flex flex-col md:flex-row items-center justify-between gap-6 border-t border-neutral-800 bg-black px-6 py-10 text-sm text-gray-500">
+    <div class="flex items-center gap-4">
+      <img src="TRS.svg" alt="TRS NET" class="h-9 w-auto" />
+      <p>&copy; TRS NET. Todos los derechos reservados.</p>
+    </div>
+    <div class="flex gap-6">
+      <a href="#" class="hover:text-white">Privacidad</a>
+      <a href="#" class="hover:text-white">Términos</a>
+      <a href="#" class="hover:text-white">Estado</a>
+    </div>
+  </footer>
+
+  <script>
+    const menuBtn = document.getElementById("menuBtn");
+    const mobileMenu = document.getElementById("mobileMenu");
+    menuBtn.addEventListener("click", () => {
+      const open = mobileMenu.classList.toggle("hidden") === false;
+      mobileMenu.classList.toggle("flex", open);
+      menuBtn.setAttribute("aria-expanded", open);
+    });
+  </script>
+</body>
+</html>

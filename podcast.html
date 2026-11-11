@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Podcasts · TRS NET</title>
+  <link rel="icon" type="image/png" href="LOGO WEB(1).png" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    html { scroll-behavior: smooth; }
+    body { font-family: "Inter", sans-serif; background: #000; color: #fff; overflow-x: hidden; }
+    :focus-visible { outline: 2px solid #fb923c; outline-offset: 3px; }
+
+    .ambient { position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background:
+        radial-gradient(600px circle at 50% 100%, rgba(255,60,0,.28), transparent 70%),
+        radial-gradient(500px circle at 85% 15%, rgba(0,140,255,.18), transparent 75%),
+        radial-gradient(500px circle at 10% 45%, rgba(255,153,0,.10), transparent 75%);
+      filter: blur(60px); animation: drift 10s ease-in-out infinite alternate; }
+    @keyframes drift { to { transform: translateY(-24px); } }
+
+    .glass { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); backdrop-filter: blur(14px); }
+    .row { display: flex; gap: 1.25rem; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; scroll-behavior: smooth; }
+    .row::-webkit-scrollbar { display: none; }
+    .row > * { scroll-snap-align: start; flex-shrink: 0; }
+
+    input[type=range] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 9px; cursor: pointer;
+      background: linear-gradient(to right, #f97316 var(--p,0%), #374151 var(--p,0%)); }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; background: #fff; border-radius: 50%; }
+    input[type=range]::-moz-range-thumb { width: 13px; height: 13px; background: #fff; border: 0; border-radius: 50%; }
+
+    .sel { border-color: #f97316 !important; box-shadow: 0 0 22px rgba(249,115,22,.3); }
+    .dot.on { background: #fff; }
+
+    @media (prefers-reduced-motion: reduce) { .ambient { animation: none !important; } .row { scroll-behavior: auto; } }
+  </style>
+</head>
+
+<body class="flex min-h-screen flex-col pt-20">
+  <div class="ambient"></div>
+
+  <!-- ================= HEADER (igual que el index) ================= -->
+  <header class="fixed top-0 inset-x-0 z-50 border-b border-white/5 bg-black/50 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
+      <a href="index.html" aria-label="TRS NET, inicio" class="group relative flex items-center">
+        <span class="absolute inset-0 bg-orange-500/25 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition"></span>
+        <img src="TRS.svg" alt="TRS NET" class="relative h-19 md:h-14 w-auto object-contain transition-transform duration-300 group-hover:scale-120" />
+      </a>
+
+      <nav class="hidden lg:flex items-center gap-10 text-sm font-semibold text-white/70">
+        <a href="index.html" class="hover:text-orange-500 transition">Inicio</a>
+        <a href="https://trsnet-esp.github.io/nexofm/" class="hover:text-orange-500 transition">NEXO FM</a>
+        <a href="lora.html" class="hover:text-orange-500 transition">LoRa</a>
+        <a href="FMDXTRSNET.html" class="hover:text-orange-500 transition">TRSNET FM DX</a>
+        <a href="podcast.html" class="text-orange-500 transition">PODCASTS</a>
+      </nav>
+
+      <div class="flex items-center gap-4">
+        <a href="login.html" class="rounded-lg bg-orange-600 hover:bg-orange-500 px-6 py-2.5 text-sm font-black tracking-wide shadow-lg shadow-orange-900/30 transition">Login</a>
+        <button id="menuBtn" class="lg:hidden text-white hover:text-orange-500 transition" aria-label="Abrir menú" aria-expanded="false">
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2.5" d="M4 8h16M4 16h16"/></svg>
+        </button>
+      </div>
+    </div>
+    <nav id="mobileMenu" class="hidden lg:hidden border-t border-white/5 px-6 py-4 flex-col gap-4 text-sm font-semibold text-white/80">
+      <a href="index.html" class="block py-2 hover:text-orange-500">Inicio</a>
+      <a href="https://trsnet-esp.github.io/nexofm/" class="block py-2 hover:text-orange-500">NEXO FM</a>
+      <a href="FMDXTRSNET.html" class="block py-2 hover:text-orange-500">TRSNET FM DX</a>
+      <a href="podcast.html" class="block py-2 text-orange-500">PODCASTS</a>
+    </nav>
+  </header>
+
+  <main class="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
+
+    <!-- ============ CARRUSEL DESTACADO ============ -->
+    <section class="grid overflow-hidden rounded-3xl border border-white/10 lg:grid-cols-[1fr_380px]" aria-label="Episodio destacado">
+      <div id="heroL" class="relative grid min-h-[300px] place-items-center overflow-hidden py-8 lg:min-h-[400px]">
+        <div id="heroBg" class="absolute inset-0 scale-125 opacity-90 blur-2xl"></div>
+        <button id="hPrev" class="absolute left-3 top-1/2 z-10 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-lg border border-white/70 bg-black/20 text-xl hover:bg-black/50" aria-label="Anterior">‹</button>
+        <button id="hNext" class="absolute right-3 top-1/2 z-10 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-lg border border-white/70 bg-black/20 text-xl hover:bg-black/50" aria-label="Siguiente">›</button>
+        <div class="relative">
+          <div class="absolute -right-3 -top-3 h-full w-full bg-black/70"></div>
+          <div id="heroCover" class="relative grid h-[220px] w-[220px] place-items-center overflow-hidden sm:h-[260px] sm:w-[260px]"></div>
+          <button id="hPlay" class="absolute -bottom-5 left-1/2 grid h-12 w-12 -translate-x-1/2 place-items-center rounded-full border-2 border-white bg-orange-500 text-lg text-black shadow-lg transition hover:scale-110" aria-label="Reproducir">▶</button>
+        </div>
+      </div>
+
+      <div class="flex flex-col items-center justify-between bg-black px-6 py-8 text-center">
+        <div>
+          <p id="hCode" class="inline-block border-b-2 border-white pb-1 text-sm"></p>
+          <h2 id="hTitle" class="mt-8 text-2xl font-black leading-tight md:text-3xl"></h2>
+          <p id="hShow" class="mt-5 text-sm font-semibold text-orange-400"></p>
+          <p id="hDesc" class="mt-3 text-sm leading-relaxed text-gray-400"></p>
+        </div>
+        <div id="dots" class="mt-8 flex gap-2.5"></div>
+      </div>
+    </section>
+
+    <!-- ============ EMISORAS ============ -->
+    <section class="mt-14">
+      <div class="mb-5 flex items-end justify-between">
+        <h2 class="text-2xl font-black tracking-tighter">Nuestras <span class="text-orange-500">emisoras</span></h2>
+        <div class="flex gap-2">
+          <button data-row="chRow" data-d="-1" class="arr grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/5 hover:bg-white/10" aria-label="Desplazar a la izquierda">‹</button>
+          <button data-row="chRow" data-d="1" class="arr grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/5 hover:bg-white/10" aria-label="Desplazar a la derecha">›</button>
+        </div>
+      </div>
+      <div id="chRow" class="row"></div>
+    </section>
+
+    <!-- ============ DESTACAMOS ============ -->
+    <section class="mt-14">
+      <div class="mb-5 flex items-end justify-between">
+        <h2 class="text-2xl font-black tracking-tighter">Destacamos</h2>
+        <div class="flex gap-2">
+          <button data-row="shRow" data-d="-1" class="arr grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/5 hover:bg-white/10" aria-label="Desplazar a la izquierda">‹</button>
+          <button data-row="shRow" data-d="1" class="arr grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/5 hover:bg-white/10" aria-label="Desplazar a la derecha">›</button>
+        </div>
+      </div>
+      <div id="shRow" class="row"></div>
+    </section>
+
+    <!-- ============ EPISODIOS ============ -->
+    <section class="mt-14">
+      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <h2 id="epTitle" class="text-2xl font-black tracking-tighter">Últimos episodios</h2>
+        <input id="search" type="search" placeholder="Buscar episodio…" class="w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm placeholder-gray-500 outline-none focus:border-orange-500/50 sm:w-64" />
+      </div>
+      <div id="list" class="grid gap-3 md:grid-cols-2"></div>
+      <p id="empty" class="mt-6 hidden text-center text-sm text-gray-500">No hay episodios que coincidan.</p>
+    </section>
+  </main>
+
+  <!-- ================= BARRA DE REPRODUCCIÓN ================= -->
+  <div class="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black/85 backdrop-blur-md">
+    <audio id="audio" preload="metadata"></audio>
+    <div class="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-3 md:flex-row md:items-center md:gap-6">
+      <div class="flex min-w-0 items-center gap-3 md:w-64">
+        <span id="bCover" class="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg"></span>
+        <span class="min-w-0"><span id="bTitle" class="block truncate text-sm font-bold"></span><span id="bShow" class="block truncate text-xs text-orange-400"></span></span>
+      </div>
+      <div class="flex flex-1 items-center gap-3">
+        <button id="prev" class="hidden h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5 hover:bg-white/10 sm:grid" aria-label="Anterior">⏮</button>
+        <button id="back" class="h-9 rounded-full border border-white/10 bg-white/5 px-2.5 text-xs font-bold hover:bg-white/10" aria-label="Retroceder 15 segundos">−15</button>
+        <button id="play" class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-orange-500 text-black hover:bg-orange-400" aria-label="Reproducir">▶</button>
+        <button id="fwd" class="h-9 rounded-full border border-white/10 bg-white/5 px-2.5 text-xs font-bold hover:bg-white/10" aria-label="Adelantar 30 segundos">+30</button>
+        <button id="next" class="hidden h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5 hover:bg-white/10 sm:grid" aria-label="Siguiente">⏭</button>
+        <span id="cur" class="w-10 text-right text-xs tabular-nums text-gray-500">0:00</span>
+        <input id="seek" type="range" min="0" max="100" step="0.1" value="0" class="min-w-0 flex-1" aria-label="Posición" />
+        <span id="dur" class="w-10 text-xs tabular-nums text-gray-500">0:00</span>
+      </div>
+      <div class="hidden items-center gap-3 md:flex">
+        <input id="volume" type="range" min="0" max="1" step="0.01" value="1" class="w-24" aria-label="Volumen" />
+        <button id="speed" class="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold tabular-nums hover:bg-white/10" aria-label="Velocidad">1×</button>
+      </div>
+      <p id="msg" class="hidden text-xs text-red-400" role="status"></p>
+    </div>
+  </div>
+
+  <!-- ================= FOOTER (igual que el index) ================= -->
+  <footer class="mt-auto flex flex-col items-center justify-between gap-6 border-t border-neutral-800 bg-black px-6 pb-32 pt-10 text-sm text-gray-500 md:flex-row">
+    <div class="flex items-center gap-4">
+      <img src="TRS.svg" alt="TRS NET" class="h-9 w-auto" />
+      <p>&copy; TRS NET. Todos los derechos reservados.</p>
+    </div>
+    <div class="flex gap-6">
+      <a href="#" class="hover:text-white">Privacidad</a>
+      <a href="#" class="hover:text-white">Términos</a>
+      <a href="#" class="hover:text-white">Estado</a>
+    </div>
+  </footer>
+
+  <script>
+    // =====================================================================
+    //  CONFIGURACIÓN: todo el contenido y las imágenes se cambian aquí
+    // =====================================================================
+    // IMÁGENES
+    //  · Portadas de programas y episodios: archivos junto a este HTML
+    //    (basta escribir el nombre del archivo, p. ej. "lasma.png"; usa imágenes cuadradas).
+    //  · Logos de emisoras: también junto a este HTML.
+    //  · Si falta una imagen o no carga, se ve el degradado con el logo de la emisora.
+    const COVERS = "";
+    const LOGOS  = "";
+
+    // EMISORAS:  name = nombre · logo = archivo del logo
+    const CHANNELS = [
+      { name: "NEXO FM", logo: "NEXO FM.svg" },
+      { name: "TRS1 FM", logo: "TRS1 FM.svg" }
+    ];
+
+    // PROGRAMAS:  ch = emisora · cover = portada del programa · grad = degradado de reserva
+    const SHOWS = {
+      "LAS MAÑANAS TECHNO": { ch: "NEXO FM", cover: "lasma.png",            grad: "linear-gradient(135deg,#ea580c,#7c2d12)" },
+      "INICIOS PROVINCIAS": { ch: "NEXO FM", cover: "INICIOPRO.png",        grad: "linear-gradient(135deg,#ea580c,#7c2d12)" }
+    };
+
+    // EPISODIOS:  show = programa · n = temporada/episodio · src = URL del audio (.mp3)
+    //             cover = portada propia del episodio (opcional; si no, usa la del programa)
+    const EPISODES = [
+      
+      { show: "INICIOS PROVINCIAS", n: "T1 – E1", title: "NEXO FM | INICIO PROVINCIAS | CANTABRIA", date: "2026-10-01", desc: "Una conversación sobre cómo se elige lo que suena en antena.", src: "1110.wav", cover: "" }
+    ];
+    // =====================================================================
+
+    // Imagen de un programa/episodio: logo de reserva + portada encima (si carga)
+    const chLogoFile = n => LOGOS + CHANNELS.find(c => c.name === n).logo;
+    const art = (show, cover, logoCls) => {
+      const s = SHOWS[show], c = cover || s.cover;
+      return `<img src="${chLogoFile(s.ch)}" alt="" class="${logoCls}" />` +
+        (c ? `<img src="${COVERS + c}" alt="" onerror="this.remove()" class="absolute inset-0 h-full w-full object-cover" />` : "");
+    };
+    const coverOf = e => e.cover || SHOWS[e.show].cover;
+
+    const $ = id => document.getElementById(id);
+    const audio = $("audio");
+    let idx = 0, hero = 0, filter = "", query = "", sp = 0;
+    const speeds = [1, 1.25, 1.5, 2, 0.75];
+    const fmt = s => { if (!isFinite(s)) return "0:00"; s = Math.floor(s); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+    const fmtDate = d => new Date(d + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
+    const setP = (el, v) => el.style.setProperty("--p", v + "%");
+    const msg = t => { $("msg").textContent = t; $("msg").classList.toggle("hidden", !t); };
+    const NOAUDIO = "Este episodio aún no tiene audio. Añade la URL en EPISODES.";
+
+    // ---- Panel de control del sistema (pantalla de bloqueo, notificación, teclas multimedia) ----
+    const mimeOf = f => /\.png$/i.test(f) ? "image/png" : /\.jpe?g$/i.test(f) ? "image/jpeg" :
+      /\.webp$/i.test(f) ? "image/webp" : /\.svg$/i.test(f) ? "image/svg+xml" : "";
+    const absUrl = f => new URL(encodeURI(f), location.href).href;
+
+    function setMediaSession(e) {
+      if (!("mediaSession" in navigator)) return;
+      const s = SHOWS[e.show], c = coverOf(e);
+      const file = c ? COVERS + c : chLogoFile(s.ch);
+      const type = mimeOf(file);
+      const artwork = ["96x96", "128x128", "192x192", "256x256", "384x384", "512x512"]
+        .map(sizes => ({ src: absUrl(file), sizes, ...(type && { type }) }));
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({ title: e.title, artist: e.show, album: s.ch, artwork });
+      } catch (_) {}
+    }
+    function setPosition() {
+      if (!("mediaSession" in navigator) || !navigator.mediaSession.setPositionState) return;
+      if (!isFinite(audio.duration) || !audio.duration) return;
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: audio.duration,
+          playbackRate: audio.playbackRate || 1,
+          position: Math.min(audio.currentTime, audio.duration)
+        });
+      } catch (_) {}
+    }
+    if ("mediaSession" in navigator) {
+      const h = (action, fn) => { try { navigator.mediaSession.setActionHandler(action, fn); } catch (_) {} };
+      h("play",          () => { if (EPISODES[idx].src) audio.play().catch(() => msg("No se pudo reproducir el audio.")); else msg(NOAUDIO); });
+      h("pause",         () => audio.pause());
+      h("previoustrack", () => $("prev").click());
+      h("nexttrack",     () => $("next").click());
+      h("seekbackward",  d => { audio.currentTime = Math.max(0, audio.currentTime - ((d && d.seekOffset) || 15)); setPosition(); });
+      h("seekforward",   d => { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + ((d && d.seekOffset) || 30)); setPosition(); });
+      h("seekto",        d => { if (d && isFinite(d.seekTime)) { audio.currentTime = d.seekTime; setPosition(); } });
+      h("stop",          () => { audio.pause(); audio.currentTime = 0; });
+    }
+
+    // ---- Carrusel ----
+    function renderHero() {
+      const e = EPISODES[hero], s = SHOWS[e.show];
+      const c = e.cover || s.cover;
+      $("heroBg").style.background = c ? `url("${encodeURI(COVERS + c)}") center/cover, ${s.grad}` : s.grad;
+      $("heroCover").style.background = s.grad;
+      $("heroCover").innerHTML = art(e.show, e.cover, "h-1/2 w-1/2 object-contain drop-shadow-lg");
+      $("hCode").textContent = e.n;
+      $("hTitle").textContent = e.title;
+      $("hShow").textContent = e.show;
+      $("hDesc").textContent = e.desc;
+      $("hPlay").textContent = hero === idx && !audio.paused ? "⏸" : "▶";
+      $("dots").innerHTML = EPISODES.map((_, i) =>
+        `<button data-h="${i}" class="dot ${i === hero ? "on" : ""} h-2.5 w-2.5 rounded-full border border-white/60" aria-label="Episodio ${i + 1}"></button>`).join("");
+    }
+    const goHero = d => { hero = (hero + d + EPISODES.length) % EPISODES.length; renderHero(); };
+    $("hPrev").onclick = () => goHero(-1);
+    $("hNext").onclick = () => goHero(1);
+    $("dots").onclick = ev => { const b = ev.target.closest("[data-h]"); if (b) { hero = +b.dataset.h; renderHero(); } };
+    $("hPlay").onclick = () => hero === idx ? $("play").click() : load(hero, true);
+
+    // ---- Filas ----
+    function renderRows() {
+      $("chRow").innerHTML = CHANNELS.map(c => `
+        <button data-f="${c.name}" class="w-40 rounded-2xl border border-transparent text-center ${filter === c.name ? "sel" : ""}">
+          <span class="grid aspect-square place-items-center rounded-2xl border border-white/10 bg-white/5 transition hover:bg-white/10"><img src="${LOGOS + c.logo}" alt="" class="h-3/5 w-3/5 object-contain" /></span>
+          <span class="mt-3 block text-sm font-bold">${c.name}</span>
+        </button>`).join("") + `
+        <div class="w-40 text-center opacity-60"><span class="grid aspect-square place-items-center rounded-2xl border border-dashed border-white/15 text-4xl text-orange-500">?</span><span class="mt-3 block text-sm font-bold">PRÓXIMAMENTE</span></div>`;
+      $("shRow").innerHTML = Object.entries(SHOWS).map(([n, s]) => `
+        <button data-f="${n}" class="w-44 text-left sm:w-52">
+          <span class="relative grid aspect-square place-items-center overflow-hidden rounded-2xl border-2 border-transparent transition hover:-translate-y-1 ${filter === n ? "sel" : ""}" style="background:${s.grad}">${art(n, "", "h-1/2 w-1/2 object-contain drop-shadow-lg")}</span>
+          <span class="mt-3 block truncate text-sm font-bold">${n}</span>
+          <span class="block text-xs text-orange-400">${s.ch}</span>
+        </button>`).join("");
+    }
+    document.addEventListener("click", ev => {
+      const a = ev.target.closest(".arr");
+      if (a) return $(a.dataset.row).scrollBy({ left: a.dataset.d * 480 });
+      const f = ev.target.closest("#chRow [data-f], #shRow [data-f]");
+      if (f) { filter = filter === f.dataset.f ? "" : f.dataset.f; renderRows(); renderList(); }
+    });
+
+    // ---- Lista de episodios ----
+    function renderList() {
+      const q = query.trim().toLowerCase();
+      const items = EPISODES.map((e, i) => ({ e, i })).filter(({ e }) =>
+        (!filter || e.show === filter || SHOWS[e.show].ch === filter) &&
+        (!q || (e.title + " " + e.desc + " " + e.show).toLowerCase().includes(q)));
+      $("epTitle").textContent = filter ? filter : "Últimos episodios";
+      $("empty").classList.toggle("hidden", items.length > 0);
+      $("list").innerHTML = items.map(({ e, i }) => `
+        <button data-i="${i}" class="flex items-center gap-4 rounded-2xl border p-3 text-left transition hover:bg-white/10 ${i === idx ? "border-orange-500/50 bg-orange-500/10" : "border-white/10 bg-white/5"}">
+          <span class="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl" style="background:${SHOWS[e.show].grad}">${art(e.show, e.cover, "h-8 w-8 object-contain")}</span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-[10px] font-bold tracking-widest text-orange-500">${e.show.toUpperCase()} · ${e.n}</span>
+            <span class="block truncate text-sm font-bold">${e.title}</span>
+            <span class="block text-xs text-gray-500">${fmtDate(e.date)}</span>
+          </span>
+          <span class="text-orange-400" aria-hidden="true">${i === idx && !audio.paused ? "⏸" : "▶"}</span>
+        </button>`).join("");
+    }
+    $("list").onclick = ev => {
+      const b = ev.target.closest("[data-i]"); if (!b) return;
+      const i = +b.dataset.i;
+      i === idx && audio.src ? $("play").click() : load(i, true);
+    };
+    $("search").oninput = ev => { query = ev.target.value; renderList(); };
+
+    // ---- Reproducción ----
+    function load(i, autoplay) {
+      idx = i; hero = i; const e = EPISODES[i], s = SHOWS[e.show];
+      $("bTitle").textContent = e.title; $("bShow").textContent = e.show;
+      $("bCover").style.background = s.grad; $("bCover").innerHTML = art(e.show, e.cover, "h-7 w-7 object-contain");
+      document.title = e.title + " · TRS NET";
+      $("seek").value = 0; setP($("seek"), 0); $("cur").textContent = "0:00"; $("dur").textContent = "0:00";
+      msg(e.src ? "" : NOAUDIO);
+      audio.src = e.src; audio.playbackRate = speeds[sp];
+      setMediaSession(e);
+      if (e.src && autoplay) audio.play().catch(() => msg("No se pudo reproducir el audio."));
+      renderHero(); renderList();
+    }
+    $("play").onclick = () => {
+      if (!EPISODES[idx].src) return msg(NOAUDIO);
+      audio.paused ? audio.play().catch(() => msg("No se pudo reproducir el audio.")) : audio.pause();
+    };
+    $("prev").onclick = () => load((idx - 1 + EPISODES.length) % EPISODES.length, true);
+    $("next").onclick = () => load((idx + 1) % EPISODES.length, true);
+    $("back").onclick = () => { audio.currentTime = Math.max(0, audio.currentTime - 15); };
+    $("fwd").onclick = () => { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 30); };
+    $("speed").onclick = () => { sp = (sp + 1) % speeds.length; audio.playbackRate = speeds[sp]; $("speed").textContent = speeds[sp] + "×"; setPosition(); };
+    $("volume").oninput = ev => { audio.volume = ev.target.value; setP(ev.target, ev.target.value * 100); };
+    $("seek").oninput = ev => { if (audio.duration) audio.currentTime = ev.target.value / 100 * audio.duration; setP(ev.target, ev.target.value); };
+
+    audio.onplay = audio.onpause = () => {
+      $("play").textContent = audio.paused ? "▶" : "⏸";
+      if ("mediaSession" in navigator) navigator.mediaSession.playbackState = audio.paused ? "paused" : "playing";
+      renderHero(); renderList();
+    };
+    audio.onloadedmetadata = () => { $("dur").textContent = fmt(audio.duration); setPosition(); };
+    audio.onseeked = setPosition;
+    audio.ontimeupdate = () => {
+      if (!audio.duration) return;
+      const p = audio.currentTime / audio.duration * 100;
+      $("seek").value = p; setP($("seek"), p); $("cur").textContent = fmt(audio.currentTime);
+    };
+    audio.onended = () => { if (idx < EPISODES.length - 1) load(idx + 1, true); };
+    audio.onerror = () => { if (audio.getAttribute("src")) msg("No se pudo cargar el audio de este episodio."); };
+
+    // Menú móvil
+    $("menuBtn").addEventListener("click", () => {
+      const open = $("mobileMenu").classList.toggle("hidden") === false;
+      $("mobileMenu").classList.toggle("flex", open);
+      $("menuBtn").setAttribute("aria-expanded", open);
+    });
+
+    setP($("volume"), 100);
+    renderRows(); load(0, false);
+  </script>
+</body>
+</html>

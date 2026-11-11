@@ -46,12 +46,7 @@
     }
   </style>
 </head>
-<script async src="https://www.googletagmanager.com/gtm.js?id=GTM-TQJ9S43B"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-</script>
+
 <body class="pt-20">
   <div class="ambient"></div>
 
@@ -67,6 +62,8 @@
         <a href="index.html" class="hover:text-orange-500 transition">Inicio</a>
         <a href="https://trsnet-esp.github.io/nexofm/" class="hover:text-orange-500 transition">NEXO FM</a>
         <a href="lora.html" class="hover:text-orange-500 transition">LoRa</a>
+        <a href="FMDXTRSNET.html" class="hover:text-orange-500 transition">TRSNET FM DX</a>
+        <a href="podcast.html" class="hover:text-orange-500 transition">PODCASTS</a>
       </nav>
 
       <div class="flex items-center gap-4">
@@ -79,7 +76,8 @@
     <nav id="mobileMenu" class="hidden lg:hidden border-t border-white/5 px-6 py-4 flex-col gap-4 text-sm font-semibold text-white/80">
       <a href="index.html" class="block py-2 hover:text-orange-500">Inicio</a>
       <a href="https://trsnet-esp.github.io/nexofm/" class="block py-2 hover:text-orange-500">NEXO FM</a>
-      <a href="trsnet2.html" class="block py-2 hover:text-orange-500">TRSTV 1</a>
+      <a href="FMDXTRSNET.html" class="block py-2 hover:text-orange-500">TRSNET FM DX</a>
+      <a href="trsnet2.html" class="block py-2 hover:text-orange-500">PODCASTS</a>
     </nav>
   </header>
 
@@ -105,65 +103,167 @@
 
       <svg class="absolute bottom-8 w-6 h-6 text-white/25 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-width="2" d="M19 14l-7 7-7-7m7 7V3"/></svg>
     </section>
+ 
+       <!-- ================= ECOSISTEMA ================= -->
+<style>
+  .logos-marquee {
+    --gap: 4.5rem;
+    --logo-h: 2rem;       /* altura base de todos los logos */
+    --logo-max-w: 8.5rem; /* tope de ancho para logos muy alargados */
+    overflow: hidden;
+    border-block: 1px solid rgba(255,255,255,.05);
+    background: rgba(255,255,255,.02);
+    padding-block: 2.5rem;
+    opacity: 0;
+    transition: opacity .4s;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+            mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  }
+  .logos-marquee.is-ready { opacity: 1; }
 
-    <!-- ================= RADIO + TRSNET+ ================= -->
-    <section class="max-w-6xl mx-auto px-6 py-20 grid gap-8 lg:grid-cols-5">
+  .logos-track {
+    display: flex;
+    width: max-content;
+    animation: logos-scroll var(--duration, 30s) linear infinite;
+    will-change: transform;
+  }
+  .logos-marquee:hover .logos-track { animation-play-state: paused; }
 
-      <!-- Reproductor -->
-      <div id="player" class="glass relative overflow-hidden rounded-3xl p-8 md:p-10 lg:col-span-3">
-        <img src="TRS.svg" alt="" aria-hidden="true" class="absolute -right-10 -top-10 w-72 opacity-[.07] blur-xl" />
-        <div class="relative grid gap-8 md:grid-cols-2 md:items-center">
-          <div class="text-center">
-            <h2 class="text-4xl font-black tracking-tighter text-orange-400">NEXO FM</h2>
-            <p class="mt-1 text-xs font-bold tracking-[.2em] text-orange-500/80 animate-pulse">EN DIRECTO</p>
+  .logos-group {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--gap);
+    padding-right: var(--gap);
+  }
 
-            <div class="mt-6 mb-6 flex h-14 items-end justify-center gap-1.5" aria-hidden="true">
-              <div class="bar bg-orange-500"></div><div class="bar bg-orange-400"></div><div class="bar bg-orange-600"></div>
-              <div class="bar bg-orange-500"></div><div class="bar bg-orange-300"></div><div class="bar bg-orange-400"></div><div class="bar bg-orange-500"></div>
-            </div>
+  .logo-item { display: flex; flex: 0 0 auto; align-items: center; height: 3rem; }
+  .logo-item img {
+    display: block;
+    --ar: 3; /* proporción real; el script la actualiza tras recortar */
+    height: calc(min(var(--logo-h), calc(var(--logo-max-w) / var(--ar))) * var(--scale, 1));
+    width: auto;
+    filter: brightness(0) invert(1);
+    opacity: .55;
+    transition: opacity .3s;
+  }
+  .logo-item:hover img { opacity: 1; }
 
-            <audio id="radio" src="https://stream.zeno.fm/rub12huqwj7tv" preload="none"></audio>
-            <button id="playBtn" class="w-full rounded-2xl bg-orange-500 hover:bg-orange-400 px-8 py-4 text-lg font-black text-black shadow-lg transition hover:scale-[1.03]">▶ Escuchar</button>
+  @keyframes logos-scroll {
+    to { transform: translateX(calc(-1 * var(--group-w, 50%))); }
+  }
+  @media (max-width: 640px) {
+    .logos-marquee { --gap: 3rem; --logo-h: 1.6rem; --logo-max-w: 6.5rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .logos-track { animation: none; }
+  }
+</style>
 
-            <label class="mt-5 flex items-center gap-3 rounded-2xl border border-white/5 bg-white/5 px-5 py-3">
-              <span aria-hidden="true">🔊</span>
-              <span class="sr-only">Volumen</span>
-              <input id="volume" type="range" min="0" max="1" step="0.01" value="1" class="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-gray-700 accent-orange-500" />
-            </label>
-            <p id="radioMsg" class="mt-3 hidden text-sm text-red-400" role="status">No se pudo conectar con la emisora. Inténtalo de nuevo.</p>
-          </div>
+<section class="py-16">
+  <p class="mb-8 text-center text-xs font-bold tracking-[.3em] text-gray-500">NUESTROS SERVICIOS</p>
 
-          <div>
-            <h2 class="text-4xl md:text-5xl font-black leading-none tracking-tighter">La radio que <span class="text-orange-400">mueve tu mundo.</span></h2>
-            <p class="mt-5 leading-relaxed text-gray-400"><strong class="text-white">NEXO FM</strong> reúne la mejor selección musical y programas en vivo con una calidad de sonido excepcional.</p>
-            <ul class="mt-6 space-y-3 text-sm font-medium text-gray-300">
-              <li class="flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-full bg-orange-500/10 text-orange-500">✦</span>Sonido premium HD</li>
-              <li class="flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-full bg-orange-500/10 text-orange-500">✦</span>Sin cortes ni interrupciones</li>
-              <li class="flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-full bg-orange-500/10 text-orange-500">✦</span>En la 88.0 y 107.6 FM en España</li>
-            </ul>
-          </div>
-        </div>
+  <div class="logos-marquee" id="logosMarquee">
+    <div class="logos-track" id="logosTrack">
+      <div class="logos-group">
+        <!-- --scale: 1 = normal. Súbelo/bájalo por logo si quieres afinar -->
+        <div class="logo-item"><img src="TRS.svg"        alt="TRS"       style="--scale:1" /></div>
+        <div class="logo-item"><img src="NEXO%20FM.svg"  alt="Nexo FM"   style="--scale:1" /></div>
+        <div class="logo-item"><img src="TRSNET+.png" alt="TRS Radio" style="--scale:1" /></div>
+        <div class="logo-item"><img src="TRSNETLoRa.png"  alt="TRS LoRa"  style="--scale:1" /></div>
+        <div class="logo-item"><img src="TRS1%20FM.svg"  alt="TRS 1 FM"  style="--scale:1" /></div>
+        <div class="logo-item"><img src="TRSNETPODCAST.png"  alt="TRS NET PODCASTS"  style="--scale:1" /></div>
+        <div class="logo-item"><img src="NEXO FM+.png"  alt="Nexo FM+"  style="--scale:1" /></div>
+        <div class="logo-item"><img src="FM DX (1).png"  alt="FM DX | TRSNET ES"  style="--scale:1" /></div>
       </div>
+    </div>
+  </div>
+</section>
 
-      <!-- TRSNET+ -->
-      <div class="glass rounded-3xl p-8 md:p-10 lg:col-span-2 flex flex-col items-center text-center">
-        <img src="LOGO WEB(2).png" alt="TRSNET+" class="h-24 w-24 rounded-2xl shadow-[0_0_28px_rgba(59,130,246,.85)]" />
-        <h3 class="mt-6 text-2xl font-extrabold">TRSNET+</h3>
-        <p class="mt-2 text-sm text-gray-400">Plataforma de vídeo para disfrutar tus contenidos favoritos.</p>
-        <h2 class="mt-8 text-3xl font-extrabold leading-tight">Lleva tu entretenimiento al <span class="text-blue-500">siguiente nivel.</span></h2>
-        <ul class="mt-6 space-y-2 text-left text-gray-400">
-          <li class="flex gap-2"><span class="text-blue-500">✔</span>Streaming en alta definición</li>
-          <li class="flex gap-2"><span class="text-blue-500">✔</span>Interfaz moderna y minimalista</li>
-          <li class="flex gap-2"><span class="text-blue-500">✔</span>Acceso multidispositivo</li>
-        </ul>
-        <span class="mt-8 rounded-full bg-blue-500 px-6 py-3 text-sm font-bold text-black">Próximamente</span>
-      </div>
-    </section>
+<script>
+(function () {
+  const marquee = document.getElementById('logosMarquee');
+  const track   = document.getElementById('logosTrack');
+  const first   = track.querySelector('.logos-group');
+  const SPEED   = 40; // px por segundo
+
+  // Recorta el margen transparente de un logo y devuelve su nueva proporción
+  function trim(img) {
+    return new Promise(resolve => {
+      const src = new Image();
+      src.crossOrigin = 'anonymous';
+      src.onload = () => {
+        try {
+          const w0 = src.naturalWidth  || 300;
+          const h0 = src.naturalHeight || 150;
+          const k  = 800 / Math.max(w0, h0);          // renderiza a buena resolución
+          const w  = Math.round(w0 * k), h = Math.round(h0 * k);
+          const c  = document.createElement('canvas');
+          c.width = w; c.height = h;
+          const ctx = c.getContext('2d', { willReadFrequently: true });
+          ctx.drawImage(src, 0, 0, w, h);
+          const d = ctx.getImageData(0, 0, w, h).data;
+
+          let x0 = w, y0 = h, x1 = -1, y1 = -1;
+          for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+            if (d[(y * w + x) * 4 + 3] > 12) {
+              if (x < x0) x0 = x; if (x > x1) x1 = x;
+              if (y < y0) y0 = y; if (y > y1) y1 = y;
+            }
+          }
+          if (x1 < 0) return resolve();                // imagen vacía: se deja como está
+
+          const cw = x1 - x0 + 1, ch = y1 - y0 + 1;
+          const out = document.createElement('canvas');
+          out.width = cw; out.height = ch;
+          out.getContext('2d').drawImage(c, x0, y0, cw, ch, 0, 0, cw, ch);
+          img.src = out.toDataURL('image/png');
+          img.style.setProperty('--ar', (cw / ch).toFixed(3));
+        } catch (e) { /* canvas bloqueado: se usa el original */ }
+        resolve();
+      };
+      src.onerror = () => {
+        // Archivo que no carga: lo quitamos para que no deje hueco ni icono roto
+        const item = img.closest('.logo-item');
+        if (item) item.remove();
+        console.warn('Logo no encontrado:', img.getAttribute('src'));
+        resolve();
+      };
+      src.src = img.getAttribute('src');
+    });
+  }
+
+  function build() {
+    track.querySelectorAll('.logos-group[data-clone]').forEach(n => n.remove());
+    const groupW = first.getBoundingClientRect().width;
+    if (!groupW) return;
+
+    const copies = Math.ceil(marquee.clientWidth / groupW) + 1;
+    for (let i = 0; i < copies; i++) {
+      const clone = first.cloneNode(true);
+      clone.setAttribute('aria-hidden', 'true');
+      clone.setAttribute('data-clone', '');
+      clone.querySelectorAll('img').forEach(im => im.alt = '');
+      track.appendChild(clone);
+    }
+    marquee.style.setProperty('--group-w', groupW + 'px');
+    marquee.style.setProperty('--duration', (groupW / SPEED) + 's');
+    marquee.classList.add('is-ready');
+  }
+
+  Promise.all([...first.querySelectorAll('img')].map(trim)).then(build);
+
+  let t;
+  window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(build, 150); });
+})();
+</script>
+   
+  
 
     <!-- ================= EMISORAS ================= -->
     <section class="max-w-6xl mx-auto px-6 py-16">
       <div class="mb-12 text-center">
-        <h2 class="text-3xl md:text-5xl font-black tracking-tighter">Nuestras <span class="text-orange-500">emisoras</span></h2>
+        <h2 class="text-3xl md:text-5xl font-black tracking-tighter">Nuestras Emisoras <span class="text-orange-500">Radio y TV</span></h2>
         <p class="mx-auto mt-4 max-w-2xl text-gray-400">Sintoniza la mejor variedad de contenido a través de nuestras estaciones oficiales, con sonido premium en cada señal.</p>
       </div>
 
@@ -175,22 +275,22 @@
         </article>
         <article class="group rounded-3xl border border-white/10 bg-white/5 p-5 md:p-6 transition duration-300 hover:-translate-y-2 hover:border-orange-500/30 hover:bg-orange-500/10">
           <div class="grid aspect-square place-items-center overflow-hidden rounded-2xl bg-black/40"><img src="TRS1 FM.svg" alt="TRS1 FM" class="h-2/3 w-2/3 object-contain transition group-hover:scale-110" /></div>
-          <h3 class="mt-5 text-center text-lg font-bold">TRS1 </h3>
-          <p class="mt-1 text-center text-xs font-bold text-orange-500">Popular</p>
+          <h3 class="mt-5 text-center text-lg font-bold">TRS1 FM </h3>
+          <p class="mt-1 text-center text-xs font-bold text-orange-500">Old Varied</p>
         </article>
         <article class="group rounded-3xl border border-white/10 bg-white/5 p-5 md:p-6 transition duration-300 hover:-translate-y-2 hover:border-orange-500/30 hover:bg-orange-500/10">
-          <div class="grid aspect-square place-items-center overflow-hidden rounded-2xl bg-black/40"><img src="https://icones.pro/wp-content/uploads/2021/05/icone-question-orange.png" alt=" " class="h-2/3 w-2/3 object-contain transition group-hover:scale-110" /></div>
-          <h3 class="mt-5 text-center text-lg font-bold">PROXIMAMENTE</h3>
+          <div class="grid aspect-square place-items-center overflow-hidden rounded-2xl bg-black/40"><img src="NEXO FM+1.svg" alt="NEXO FM+" class="h-2/3 w-2/3 object-contain transition group-hover:scale-110" /></div>
+          <h3 class="mt-5 text-center text-lg font-bold">NEXO FM+</h3>
           <p class="mt-1 text-center text-xs font-bold text-orange-500">Techno</p>
         </article>
         <article class="group rounded-3xl border border-white/10 bg-white/5 p-5 md:p-6 transition duration-300 hover:-translate-y-2 hover:border-orange-500/30 hover:bg-orange-500/10">
-          <div class="grid aspect-square place-items-center overflow-hidden rounded-2xl bg-black/40"><img src="https://icones.pro/wp-content/uploads/2021/05/icone-question-orange.png" alt=" " class="h-2/3 w-2/3 object-contain transition group-hover:scale-110" /></div>
-          <h3 class="mt-5 text-center text-lg font-bold">PROXIMAMENTE</h3>
-          <p class="mt-1 text-center text-xs font-bold text-orange-500">Urbano</p>
+          <div class="grid aspect-square place-items-center overflow-hidden rounded-2xl bg-black/40"><img src="LOGOntv2.svg" alt="NEXO TV 2" class="h-2/3 w-2/3 object-contain transition group-hover:scale-110" /></div>
+          <h3 class="mt-5 text-center text-lg font-bold">NEXO TV 2</h3>
+          <p class="mt-1 text-center text-xs font-bold text-orange-500">TV</p>
         </article>
       </div>
     </section>
-
+   
     <!-- ================= PLATAFORMAS ================= -->
     <section class="max-w-4xl mx-auto px-6 py-10">
       <div class="glass flex flex-col md:flex-row items-center justify-between gap-6 rounded-[2rem] px-8 py-5">
@@ -225,26 +325,7 @@
       </div>
     </section>
 
-    <!-- ================= ECOSISTEMA ================= -->
-    <section class="py-16">
-      <p class="mb-8 text-center text-xs font-bold tracking-[.3em] text-gray-500">ECOSISTEMA</p>
-      <div class="overflow-hidden border-y border-white/5 bg-white/[.02] py-10">
-        <div class="marquee items-center gap-20 pr-20" aria-hidden="true">
-          <!-- Bloque 1 -->
-          <img src="TRS.svg" alt="" class="h-14 w-auto" />
-          <div class="flex items-center gap-3 opacity-80"><img src="NEXO FM.svg" alt="" class="h-12 w-12 rounded-xl shadow-lg shadow-blue-500/20" /><span class="text-2xl font-black tracking-tighter">NEXO FM</span></div>
-          <div class="flex items-center gap-3 opacity-80"><span class="grid h-12 w-12 place-items-center rounded-xl bg-orange-500 text-xl font-black text-black">R</span><span class="text-2xl font-black tracking-tighter">TRSRADIO</span></div>
-          <span class="whitespace-nowrap text-3xl font-black italic text-gray-600">TRSLoRa</span>
-          <span class="whitespace-nowrap text-3xl font-black italic text-gray-600">TRS1 FM</span>
-          <!-- Bloque 2 (copia para el bucle continuo) -->
-          <img src="TRS.svg" alt="" class="h-14 w-auto" />
-          <div class="flex items-center gap-3 opacity-80"><img src="LOGO WEB(2).png" alt="" class="h-12 w-12 rounded-xl shadow-lg shadow-blue-500/20" /><span class="text-2xl font-black tracking-tighter">TRSNET+</span></div>
-          <div class="flex items-center gap-3 opacity-80"><span class="grid h-12 w-12 place-items-center rounded-xl bg-orange-500 text-xl font-black text-black">R</span><span class="text-2xl font-black tracking-tighter">TRSRADIO</span></div>
-          <span class="whitespace-nowrap text-3xl font-black italic text-gray-600">TRSLoRa</span>
-          <span class="whitespace-nowrap text-3xl font-black italic text-gray-600">TRS1 FM</span>
-        </div>
-      </div>
-    </section>
+    
 
     <!-- ================= TRAYECTORIA ================= -->
     <section class="relative overflow-hidden px-6 py-32 text-center">
