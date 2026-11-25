@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FMLIST España</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<style>
+:root{--bg:#14110d;--pn:#1d1914;--ln:#34291d;--tx:#efe6d8;--mu:#9c8d78;--ac:#ff9d1c;box-sizing:border-box}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f6efe3;--pn:#fffaf1;--ln:#dccdb5;--tx:#2a2116;--mu:#7d6c55;--ac:#c4640a}}
+:root[data-theme="dark"]{--bg:#14110d;--pn:#1d1914;--ln:#34291d;--tx:#efe6d8;--mu:#9c8d78;--ac:#ff9d1c}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font:13px/1.4 "Segoe UI",system-ui,sans-serif;display:flex;flex-direction:column}
+header{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--ln)}
+h1{margin:0 6px 0 0;font:700 19px "Trebuchet MS",sans-serif}h1 b{color:var(--ac)}
+input,select,button{font:inherit;color:var(--tx);background:var(--pn);border:1px solid var(--ln);border-radius:6px;padding:5px 8px}
+input[type=number]{width:78px}button{cursor:pointer}button:hover,button:focus-visible{border-color:var(--ac);outline:none}
+.pri{background:var(--ac);color:#1a1208;border-color:var(--ac);font-weight:600}
+#st{margin-left:auto;color:var(--mu);font-size:12px}
+main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+@media(max-width:820px){main{grid-template-columns:1fr;grid-template-rows:44vh 1fr}}
+#mapw{position:relative;border-right:1px solid var(--ln);min-height:0}#map{position:absolute;inset:0;background:var(--bg)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9)}}
+#det{position:absolute;z-index:1000;left:8px;bottom:8px;width:min(380px,calc(100% - 16px));max-height:62%;overflow:auto;background:var(--pn);border:1px solid var(--ac);border-radius:8px;padding:9px 11px;display:none}
+#det h2{margin:0;font-size:16px;color:var(--ac)}#det .sub{color:var(--mu);margin-bottom:4px}
+.stn{border-top:1px solid var(--ln);padding:5px 0}.stn b{color:var(--ac);font-size:15px}
+.tag{font-size:11px;border:1px solid var(--ln);border-radius:4px;padding:0 5px;color:var(--mu)}.tag.adm{border-color:var(--ac);color:var(--ac)}
+.afb{margin:2px 3px 0 0;padding:0 6px;font-size:12px}
+#side{display:flex;flex-direction:column;min-height:0}#dial{width:100%;height:48px;display:block;border-bottom:1px solid var(--ln)}
+#msg{display:none;padding:7px 12px;background:var(--pn);border-bottom:1px solid var(--ac);color:var(--tx)}
+.tb{display:flex;gap:8px;align-items:center;padding:5px 10px;border-bottom:1px solid var(--ln);color:var(--mu)}
+.tw{overflow:auto;min-height:0;flex:1}table{border-collapse:collapse;width:100%}
+th{position:sticky;top:0;background:var(--pn);text-align:left;padding:6px 8px;border-bottom:1px solid var(--ln);white-space:nowrap}
+td{padding:4px 8px;border-bottom:1px solid var(--ln);white-space:nowrap}
+tr.sh td{background:var(--pn);font-weight:600;cursor:pointer}tr.sh.sel td{background:var(--ln);color:var(--ac)}
+td.f{color:var(--ac);font-weight:700}
+.ant{background:none;border:0}.fl{background:none;border:0;box-shadow:none;color:#1a1208;font:700 12px "Segoe UI",sans-serif;text-shadow:0 0 3px #fff,0 0 3px #fff}.fl:before{display:none}
+dialog{background:var(--pn);color:var(--tx);border:1px solid var(--ac);border-radius:10px;max-width:430px}
+dialog label{display:grid;grid-template-columns:120px 1fr;gap:8px;margin:4px 0;align-items:center}
+</style></head><body>
+<header>
+<h1>FM<b>LIST</b> España</h1>
+<input id="q" placeholder="Buscar emisora, PS, PI, sitio…" size="22" aria-label="Buscar">
+<select id="fp" aria-label="Provincia"><option value="">Provincia</option></select>
+<select id="fpol" aria-label="Polarización"><option value="">Pol.</option><option>H</option><option>V</option><option>M</option></select>
+<select id="fmin" aria-label="Potencia mínima"><option value="0">Potencia</option><option value="0.1">≥ 0,1 kW</option><option value="1">≥ 1 kW</option><option value="10">≥ 10 kW</option><option value="50">≥ 50 kW</option></select>
+<input id="f1" type="number" step="0.1" min="87.5" max="108" placeholder="MHz mín" aria-label="Frecuencia mínima"><input id="f2" type="number" step="0.1" min="87.5" max="108" placeholder="MHz máx" aria-label="Frecuencia máxima">
+<select id="fsrc" aria-label="Fuente"><option value="">Fuente</option><option>FMLIST</option><option>Admin</option></select>
+<label><input type="checkbox" id="cov" checked> Cobertura</label>
+<label><input type="checkbox" id="vz" checked> Solo zona visible</label>
+<button id="geo">Mi posición</button><button id="rel">Actualizar FMLIST</button><button id="adm">Admin</button>
+<span id="ad" style="display:none"><button id="add" class="pri">Añadir</button> <button id="cp">Copiar JSON</button> <button id="out">Salir</button></span>
+<span id="st"></span>
+</header>
+<main>
+<div id="mapw"><div id="map"></div><div id="det"></div></div>
+<div id="side"><div id="msg"></div><canvas id="dial" aria-label="Ocupación del dial FM"></canvas>
+<div class="tb">Antenas ordenadas por <select id="ord"><option value="max">potencia</option><option value="prov">provincia</option><option value="name">nombre</option><option value="n">nº de emisoras</option></select><span id="cnt"></span></div>
+<div class="tw"><table><thead><tr><th>MHz</th><th>PS</th><th>Emisora</th><th>ERP kW</th><th>Pol</th><th>PI</th><th>AF</th><th>Fuente</th></tr></thead><tbody id="tb"></tbody></table></div></div>
+</main>
+<dialog id="dg"><form method="dialog" id="fm"><div id="fields"></div>
+<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button value="c">Cancelar</button><button value="ok" class="pri">Guardar</button></div></form></dialog>
+
+<script>
+/* ===== Configuración ===== */
+const ADMIN_PIN="1234";               // CAMBIA ESTE PIN (es solo una barrera visual, no seguridad real)
+const API="https://maps.fmdx.org/api/?qth=40.4,-3.7";   // base de datos abierta de fmdx.org, construida con datos de FMLIST
+const PROXIES=["","https://cors-proxy.de:13128/"];       // directo y, si el navegador lo bloquea, mediante proxy CORS
+const ADMIN_BASE=[ // emisoras del administrador (también se leen de admin.json junto al HTML)
+{id:"a1",f:104.7,ps:"NEXOFM",name:"Nexo FM (Solo Hits)",site:"Burgos",prov:"Burgos",lat:42.34,lon:-3.70,erp:1,pol:"V",h:60,pi:"",af:"105.8",pty:"Pop",owner:"Nexo FM"},
+{id:"a2",f:105.8,ps:"NEXOFM",name:"Nexo FM (Solo Hits)",site:"Cantabria",prov:"Cantabria",lat:43.30,lon:-4.00,erp:1,pol:"V",h:100,pi:"",af:"104.7",pty:"Pop",owner:"Nexo FM"}];
+/* ===== Utilidades ===== */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const CAPS="A Coruña:43.37:-8.40;Álava:42.85:-2.67;Albacete:38.99:-1.86;Alicante:38.35:-0.48;Almería:36.84:-2.46;Asturias:43.36:-5.85;Ávila:40.66:-4.70;Badajoz:38.88:-6.97;Illes Balears:39.57:2.65;Barcelona:41.39:2.17;Bizkaia:43.26:-2.93;Burgos:42.34:-3.70;Cáceres:39.47:-6.37;Cádiz:36.53:-6.29;Cantabria:43.46:-3.81;Castellón:39.99:-0.04;Ciudad Real:38.99:-3.93;Córdoba:37.89:-4.78;Cuenca:40.07:-2.14;Gipuzkoa:43.32:-1.98;Girona:41.98:2.82;Granada:37.18:-3.60;Guadalajara:40.63:-3.17;Huelva:37.26:-6.95;Huesca:42.14:-0.41;Jaén:37.77:-3.79;La Rioja:42.47:-2.45;Las Palmas:28.12:-15.43;León:42.60:-5.57;Lleida:41.62:0.62;Lugo:43.01:-7.56;Madrid:40.42:-3.70;Málaga:36.72:-4.42;Murcia:37.99:-1.13;Navarra:42.82:-1.64;Ourense:42.34:-7.86;Palencia:42.01:-4.53;Pontevedra:42.43:-8.64;Salamanca:40.97:-5.66;Santa Cruz de Tenerife:28.47:-16.25;Segovia:40.95:-4.12;Sevilla:37.39:-5.99;Soria:41.76:-2.47;Tarragona:41.12:1.25;Teruel:40.34:-1.11;Toledo:39.86:-4.02;Valencia:39.47:-0.38;Valladolid:41.65:-4.72;Zamora:41.50:-5.75;Zaragoza:41.65:-0.89;Ceuta:35.89:-5.32;Melilla:35.29:-2.94".split(";").map(s=>{const a=s.split(":");return[a[0],+a[1],+a[2]]});
+const prov=(la,lo)=>{let b="",bd=1e9;for(const c of CAPS){const d=(c[1]-la)**2+((c[2]-lo)*.77)**2;if(d<bd){bd=d;b=c[0]}}return b};
+const PW=[[1,"#3da5ff","< 1 kW"],[5,"#35c46a","1–5 kW"],[25,"#f2d024","5–25 kW"],[50,"#ff8a1c","25–50 kW"],[1e9,"#ff3b30","≥ 50 kW"]];
+const pwc=e=>PW.find(p=>e<p[0])[1];
+const cover=(e,h)=>Math.min(80,11*Math.pow(Math.max(e,.05),.3)*(1+(h||0)/1500));
+const POL={H:"Horizontal",V:"Vertical",M:"Mixta"};
+/* ===== Datos ===== */
+let FM=[],ADM=[],ALL=[],SITES=[],VS=[],BYF=new Map(),selS=null,admin=false,info="";
+function parseFmdx(j){const out=[],Lc=j.locations||j;let n=0;
+for(const id in Lc){const l=Lc[id];if(!l||typeof l!=="object")continue;const la=+l.lat,lo=+l.lon;if(isNaN(la)||isNaN(lo))continue;
+const itu=String(l.itu||l.country||"");if(itu?!/^(E|ES|ESP|SPA|Spain|España)$/i.test(itu):!(la>27&&la<44.5&&lo>-19&&lo<5.2))continue;
+const pv=prov(la,lo);
+(l.stations||[]).forEach(s=>{let f=+(s.freq??s.frequency);if(f>2000)f/=1000;if(!(f>=87&&f<=108.1))return;
+out.push({id:"f"+(n++),f,ps:String(s.ps||"").trim(),name:String(s.station||s.name||s.ps||"").trim(),site:String(l.name||"").trim(),prov:pv,lat:la,lon:lo,erp:+s.erp||0,pol:String(s.pol||"").toUpperCase().slice(0,1),h:+(s.haat??s.height??l.height)||0,pi:String(s.pi||"").trim(),af:"",pty:"",owner:"",src:"FMLIST"})})}
+return out}
+async function getJson(u){for(const p of PROXIES){try{const r=await fetch(p+u,{cache:"no-store"});if(r.ok)return await r.json()}catch(e){}}throw new Error("sin acceso")}
+function msg(t){$("msg").style.display=t?"block":"none";$("msg").innerHTML=t||""}
+async function loadFm(force){msg("");
+try{const c=JSON.parse(localStorage.getItem("fmlist-cache")||"null");if(c&&!force&&Date.now()-c.t<216e5&&c.d.length){FM=c.d;info="FMLIST (caché de hace "+Math.round((Date.now()-c.t)/6e4)+" min)";return}}catch(e){}
+$("st").textContent="Descargando FMLIST…";
+try{FM=parseFmdx(await getJson(API));if(!FM.length)throw new Error("vacío");info="FMLIST (actualizado ahora)";
+try{localStorage.setItem("fmlist-cache",JSON.stringify({t:Date.now(),d:FM}))}catch(e){}}
+catch(e){try{const r=await fetch("fmlist-es.json");FM=(await r.json()).map(s=>({...s,src:"FMLIST"}));info="FMLIST (respaldo fmlist-es.json)"}
+catch(e2){FM=[];info="sin datos de FMLIST";msg("<b>No se pudo descargar la base de FMLIST.</b> El navegador puede bloquear la petición a maps.fmdx.org (CORS) o no hay conexión. Pulsa «Actualizar FMLIST» para reintentar, o coloca un <code>fmlist-es.json</code> con las mismas columnas junto a este HTML como respaldo. Mientras tanto solo se ven las emisoras del administrador.")}}}
+async function loadAdm(){let loc=null;try{loc=JSON.parse(localStorage.getItem("fmlist-admin")||"null")}catch(e){}
+if(loc){ADM=loc;return}
+ADM=ADMIN_BASE.slice();try{const r=await fetch("admin.json",{cache:"no-store"});if(r.ok){const j=await r.json();if(Array.isArray(j))ADM=j}}catch(e){}}
+const saveAdm=()=>{try{localStorage.setItem("fmlist-admin",JSON.stringify(ADM))}catch(e){}};
+/* agrupa por antena: mismas coordenadas = misma torre */
+function rebuild(){const adm=ADM.map(s=>({...s,src:"Admin"})),key=s=>Math.round(s.f*10)+"|"+s.lat.toFixed(1)+"|"+s.lon.toFixed(1),ak=new Set(adm.map(key));
+ALL=adm.concat(FM.filter(s=>!ak.has(key(s))));
+const m=new Map();BYF=new Map();
+ALL.forEach(s=>{const k=s.lat.toFixed(3)+","+s.lon.toFixed(3);let o=m.get(k);if(!o){o={k,lat:s.lat,lon:s.lon,name:s.site,prov:s.prov,h:s.h,st:[]};m.set(k,o)}o.st.push(s);if(!o.name)o.name=s.site;o.h=Math.max(o.h||0,s.h||0);
+const fk=Math.round(s.f*10);(BYF.get(fk)||BYF.set(fk,[]).get(fk)).push(s)});
+SITES=[...m.values()];SITES.forEach(o=>{o.st.sort((a,b)=>a.f-b.f);o.name=o.name||(o.st[0].name+" (emplazamiento)")});
+const ps=[...new Set(ALL.map(s=>s.prov))].sort((a,b)=>a.localeCompare(b)),cur=$("fp").value;
+$("fp").innerHTML='<option value="">Provincia</option>'+ps.map(p=>`<option>${esc(p)}</option>`).join("");$("fp").value=cur;
+if(selS)selS=SITES.find(o=>o.k===selS.k)||null;filt()}
+function afm(d,f){return(BYF.get(Math.round(f*10))||[]).find(x=>x!==d&&((d.pi&&x.pi===d.pi)||(d.ps&&x.ps===d.ps)))}
+const afl=d=>String(d.af||"").split(/[\s;,|\/]+/).map(parseFloat).filter(x=>x>0);
+/* ===== Filtros ===== */
+function filt(){const q=$("q").value.toLowerCase(),p=$("fp").value,o=$("fpol").value,mn=+$("fmin").value,a=parseFloat($("f1").value)||0,b=parseFloat($("f2").value)||999,sr=$("fsrc").value;
+VS=[];SITES.forEach(s=>{const v=s.st.filter(d=>(!q||(d.name+" "+d.ps+" "+d.pi+" "+d.site+" "+d.prov+" "+d.f).toLowerCase().includes(q))&&(!p||d.prov===p)&&(!o||d.pol===o)&&d.erp>=mn&&d.f>=a&&d.f<=b&&(!sr||d.src===sr));
+if(v.length){s.v=v;s.max=Math.max(...v.map(d=>d.erp));VS.push(s)}});
+$("st").textContent=info+" · "+ALL.length+" transmisores en "+SITES.length+" antenas · mostrando "+VS.reduce((n,s)=>n+s.v.length,0);
+render()}
+/* ===== Mapa ===== */
+const map=L.map("map",{preferCanvas:true}).setView([40.2,-3.7],6);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(map);
+const lay=L.layerGroup().addTo(map);let me=null;
+const lg=L.control({position:"bottomright"});lg.onAdd=()=>{const e=L.DomUtil.create("div");e.style.cssText="background:var(--pn);color:var(--tx);border:1px solid var(--ln);border-radius:6px;padding:5px 8px;font-size:12px";e.innerHTML="<b>Potencia ERP</b>"+PW.map(p=>`<div><span style="color:${p[1]}">▲</span> ${p[2]}</div>`).join("");return e};lg.addTo(map);
+function icon(s,on){const c=pwc(s.max??0),S=Math.round(20+Math.min(14,Math.log10((s.max||0)+1)*8)),n=(s.v||s.st).length;
+return L.divIcon({className:"ant",iconSize:[S,S],iconAnchor:[S/2,S],html:`<div style="position:relative;width:${S}px;height:${S}px"><svg width="${S}" height="${S}" viewBox="0 0 24 24" style="${on?"filter:drop-shadow(0 0 4px #fff) drop-shadow(0 0 2px #fff)":"filter:drop-shadow(0 0 1.5px #000)"}"><path d="M12 11v11M8.5 22h7M12 11l-3.5 11M12 11l3.5 11" stroke="${c}" stroke-width="1.8" stroke-linecap="round" fill="none"/><circle cx="12" cy="9" r="2.2" fill="${c}"/><path d="M8 5a5.7 5.7 0 0 0 0 8M16 5a5.7 5.7 0 0 1 0 8M5.2 2.6a9.6 9.6 0 0 0 0 12.8M18.8 2.6a9.6 9.6 0 0 1 0 12.8" stroke="${c}" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>${n>1?`<span style="position:absolute;right:-5px;top:-4px;background:#fff;color:#111;border-radius:8px;font:700 10px sans-serif;padding:0 4px;border:1px solid #111">${n}</span>`:""}</div>`})}
+function mkIcon(s,on){const S=Math.round(20+Math.min(14,Math.log10((s.max||0)+1)*8)),n=s.v.length,z=map.getZoom();
+const m=L.marker([s.lat,s.lon],{icon:icon(s,on),zIndexOffset:Math.round((s.max||0)*10)+(on?1e5:0)}).addTo(lay);
+if(z>=10||on)m.bindTooltip(esc(n>1?s.name+" · "+n+" emisoras":s.v[0].f.toFixed(1)+" · "+(s.v[0].ps||s.v[0].name)),{permanent:true,direction:"right",offset:[S/2,-S/2],className:"fl"});
+m.on("click",()=>pick(s,false))}
+function draw(){lay.clearLayers();const b=map.getBounds().pad(.1),z=map.getZoom(),on=selS;
+let S=VS.filter(s=>b.contains([s.lat,s.lon]));
+const circ=s=>{const c=pwc(s.max);L.circle([s.lat,s.lon],{radius:cover(s.max,s.h)*1000,color:c,weight:1,opacity:.7,fillColor:c,fillOpacity:.07,interactive:false}).addTo(lay)};
+if(z<8){S.forEach(s=>{if(s===on)return;L.circleMarker([s.lat,s.lon],{radius:3+Math.min(5,Math.log10(s.max+1)*3),color:"#000",weight:.6,fillColor:pwc(s.max),fillOpacity:.9}).on("click",()=>pick(s,false)).addTo(lay)});
+if($("cov").checked&&on)circ(on)}
+else{S.sort((a,c)=>c.max-a.max);S=S.slice(0,500);if($("cov").checked)S.forEach(circ);S.forEach(s=>{if(s!==on)mkIcon(s,false)})}
+if(on){if(VS.includes(on))mkIcon(on,true);
+on.st.forEach(d=>afl(d).forEach(f=>{const t=afm(d,f);if(t&&t.lat+","+t.lon!==on.lat+","+on.lon)L.polyline([[on.lat,on.lon],[t.lat,t.lon]],{color:"#fff",weight:2,dashArray:"6 6",opacity:.9,interactive:false}).addTo(lay)}))}}
+/* ===== Tabla agrupada por antena ===== */
+const ORD={max:(a,b)=>b.max-a.max,prov:(a,b)=>a.prov.localeCompare(b.prov)||b.max-a.max,name:(a,b)=>a.name.localeCompare(b.name),n:(a,b)=>b.v.length-a.v.length};
+let cap=250;
+function render(){let L2=VS.slice();if($("vz").checked){const b=map.getBounds();L2=L2.filter(s=>b.contains([s.lat,s.lon]))}
+L2.sort(ORD[$("ord").value]);const tot=L2.length;L2=L2.slice(0,cap);
+$("tb").innerHTML=L2.map(s=>`<tr class="sh${s===selS?" sel":""}" data-k="${s.k}"><td colspan="8">📡 ${esc(s.name)} · ${esc(s.prov)} · ${s.v.length} emisora${s.v.length>1?"s":""} · ${s.max?s.max+" kW máx.":"ERP desconocida"}</td></tr>`+s.v.map(d=>`<tr data-k="${s.k}"><td class="f">${d.f.toFixed(1)}</td><td>${esc(d.ps)||"—"}</td><td>${esc(d.name)||"—"}</td><td>${d.erp||"—"}</td><td>${esc(d.pol)||"—"}</td><td>${esc(d.pi)||"—"}</td><td>${esc(d.af)||"—"}</td><td><span class="tag${d.src==="Admin"?" adm":""}">${d.src}</span></td></tr>`).join("")).join("")+(tot>cap?`<tr class="more"><td colspan="8"><button id="mo">Mostrar más antenas (${tot-cap} restantes)</button></td></tr>`:"");
+$("cnt").textContent=tot+" antenas"+($("vz").checked?" en la zona visible":"");
+document.querySelectorAll("#tb tr[data-k]").forEach(r=>r.onclick=()=>pick(SITES.find(o=>o.k===r.dataset.k),true));
+const mo=$("mo");if(mo)mo.onclick=()=>{cap+=250;render()};
+dial();draw()}
+/* ===== Dial FM ===== */
+function dial(){const c=$("dial"),d=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;if(!w)return;c.width=w*d;c.height=h*d;const x=c.getContext("2d");x.setTransform(d,0,0,d,0,0);
+const X=f=>6+(f-87.5)/20.5*(w-12),H=t=>Math.min(26,5+Math.log10(t+1)*11);
+x.font="10px Segoe UI,sans-serif";x.fillStyle=css("--mu");for(let f=88;f<=108;f+=2)x.fillText(f,X(f)-7,h-2);
+const sel=new Set(selS?selS.st.map(s=>s.f):[]);x.lineWidth=1;
+VS.forEach(s=>s.v.forEach(t=>{if(sel.has(t.f))return;x.strokeStyle=pwc(t.erp)+"99";x.beginPath();x.moveTo(X(t.f),h-14);x.lineTo(X(t.f),h-14-H(t.erp));x.stroke()}));
+if(selS){x.strokeStyle=css("--tx");x.lineWidth=3;selS.st.forEach(t=>{x.beginPath();x.moveTo(X(t.f),h-14);x.lineTo(X(t.f),h-14-Math.max(12,H(t.erp)));x.stroke()})}}
+/* ===== Ficha de antena ===== */
+function pick(s,center){if(!s)return;selS=s;if(center)map.flyTo([s.lat,s.lon],Math.max(map.getZoom(),10),{duration:.6});
+const box=$("det");box.style.display="block";
+box.innerHTML=`<h2>${esc(s.name)}</h2><div class="sub">${esc(s.prov)} · ${s.lat.toFixed(4)}, ${s.lon.toFixed(4)} · altura ${s.h||"—"} m · ${s.st.length} emisora${s.st.length>1?"s":""} en esta antena <button id="x" style="float:right;padding:0 7px">✕</button></div>`+
+s.st.map(d=>`<div class="stn"><b>${d.f.toFixed(1)} MHz</b> ${esc(d.ps)} <span class="tag${d.src==="Admin"?" adm":""}">${d.src}</span><br>${esc(d.name)||"—"}<br><span style="color:var(--mu)">ERP</span> ${d.erp?d.erp+" kW":"—"} · <span style="color:var(--mu)">Pol</span> ${POL[d.pol]||d.pol||"—"} · <span style="color:var(--mu)">PI</span> ${esc(d.pi)||"—"}${d.pty?" · <span style='color:var(--mu)'>PTY</span> "+esc(d.pty):""}${d.owner?" · "+esc(d.owner):""}<br>${afl(d).length?'<span style="color:var(--mu)">AF</span> ':""}<span class="afs" data-i="${d.id}"></span>${admin&&d.src==="Admin"?` <button class="ed" data-i="${d.id}">Editar</button> <button class="dl" data-i="${d.id}">Borrar</button>`:""}</div>`).join("");
+$("x").onclick=()=>{selS=null;box.style.display="none";render()};
+box.querySelectorAll(".afs").forEach(sp=>{const d=ALL.find(z=>z.id===sp.dataset.i);afl(d).forEach(f=>{const t=afm(d,f),b=document.createElement("button");b.className="afb";b.textContent=f.toFixed(1);if(t){b.style.borderColor=css("--ac");b.title="Ir a "+(t.name||t.ps)}b.onclick=()=>{if(t)pick(SITES.find(o=>o.st.includes(t)),true)};sp.appendChild(b)})});
+box.querySelectorAll(".ed").forEach(b=>b.onclick=()=>edit(ADM.find(z=>z.id===b.dataset.i)));
+box.querySelectorAll(".dl").forEach(b=>b.onclick=()=>{if(confirm("¿Borrar esta emisora?")){ADM=ADM.filter(z=>z.id!==b.dataset.i);saveAdm();selS=null;box.style.display="none";rebuild()}});
+render()}
+/* ===== Administrador ===== */
+const FIELDS=[["f","Frecuencia MHz","number"],["ps","PS","text"],["name","Emisora","text"],["site","Emplazamiento","text"],["prov","Provincia","text"],["lat","Latitud","number"],["lon","Longitud","number"],["erp","ERP kW","number"],["pol","Pol (H/V/M)","text"],["h","Altura m","number"],["pi","PI (hex)","text"],["af","AF (separadas por espacio)","text"],["pty","PTY","text"],["owner","Titular","text"]];
+$("fields").innerHTML=FIELDS.map(([k,l,t])=>`<label>${l}<input name="${k}" type="${t}" step="any" ${["f","name","lat","lon"].includes(k)?"required":""}></label>`).join("");
+let editing=null;
+function edit(d){editing=d?d.id:null;$("fm").reset();if(d)FIELDS.forEach(([k])=>$("fm").elements[k].value=d[k]??"");$("dg").showModal()}
+$("add").onclick=()=>edit(null);
+$("dg").onclose=()=>{if($("dg").returnValue!=="ok")return;const o={id:editing||"a"+Date.now()};FIELDS.forEach(([k,,t])=>{const v=$("fm").elements[k].value;o[k]=t==="number"?(+v||0):v.trim()});o.pol=(o.pol||"V").toUpperCase().slice(0,1);o.prov=o.prov||prov(o.lat,o.lon);
+const i=ADM.findIndex(z=>z.id===o.id);i>=0?ADM[i]=o:ADM.push(o);saveAdm();rebuild()};
+$("adm").onclick=()=>{if(admin)return;const p=prompt("PIN de administrador");if(p===ADMIN_PIN){admin=true;$("ad").style.display="inline";$("adm").style.display="none";if(selS)pick(selS,false)}else if(p!==null)alert("PIN incorrecto")};
+$("out").onclick=()=>{admin=false;$("ad").style.display="none";$("adm").style.display="";if(selS)pick(selS,false)};
+$("cp").onclick=async()=>{const t=JSON.stringify(ADM,null,1);try{await navigator.clipboard.writeText(t);alert("JSON copiado. Guárdalo como admin.json junto a este HTML para que todos vean tus emisoras.")}catch(e){prompt("Copia este JSON y guárdalo como admin.json:",t)}};
+/* ===== Eventos ===== */
+["q","fp","fpol","fmin","f1","f2","fsrc"].forEach(i=>$(i).oninput=()=>{cap=250;filt()});
+$("cov").oninput=draw;$("vz").oninput=render;$("ord").oninput=render;
+let tm;map.on("moveend zoomend",()=>{draw();clearTimeout(tm);tm=setTimeout(()=>{if($("vz").checked)render()},180)});
+$("rel").onclick=async()=>{await loadFm(true);rebuild()};
+$("geo").onclick=()=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>{const c=[p.coords.latitude,p.coords.longitude];if(me)me.remove();me=L.circleMarker(c,{radius:8,color:"#fff",weight:2,fillColor:"#2d7ff9",fillOpacity:1}).addTo(map).bindTooltip("Estás aquí");map.flyTo(c,10)},()=>alert("No se pudo obtener tu posición.")):alert("Tu navegador no permite geolocalización.");
+new ResizeObserver(()=>{map.invalidateSize();dial()}).observe($("mapw"));
+(async()=>{await loadAdm();rebuild();await loadFm(false);rebuild()})();
+</script></body></html>
